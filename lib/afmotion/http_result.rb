@@ -15,5 +15,11 @@ module AFMotion
     def failure?
       !!error
     end
+
+    def body
+      if operation && operation.responseData
+        NSString.stringWithUTF8String(operation.responseData.bytes)
+      end
+    end
   end
 end

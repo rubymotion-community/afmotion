@@ -22,7 +22,7 @@ class AppDelegate
     end
 
     AFMotion::HTTP.get("http://google.com") do |result|
-      p NSString.stringWithUTF8String(result.operation.responseData.bytes)
+      p result.body
     end
 
     true
