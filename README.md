@@ -16,9 +16,9 @@ AFMotion::JSON.get("http://jsonip.com") do |result|
 end
 ```
 
-### HTTPClient
+### Web Services
 
-If you're interacting with a web service, you can use the outstanding `AFHTTPClient` with this nice wrapper:
+If you're interacting with a web service, you can use `AFHTTPClient` with this nice wrapper:
 
 ```ruby
 # DSL Mapping to properties of AFHTTPClient
@@ -37,3 +37,5 @@ AFMotion::Client.shared.get("stream/0/posts/stream/global") do |result|
   end
 end
 ```
+
+If you use more than one client in your app, you can use `AFMotion::Client.build` instead of `build_shared`.
