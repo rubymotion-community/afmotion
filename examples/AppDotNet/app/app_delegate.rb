@@ -1,29 +1,27 @@
 class AppDelegate
+  attr_accessor :navigationController, :window
   def application(application, didFinishLaunchingWithOptions:launchOptions)
 
-    # Use a Client
     AFMotion::Client.build_shared("https://alpha-api.app.net/") do
       header "Accept", "application/json"
 
       operation :json
     end
 
-    AFMotion::Client.shared.get("stream/0/posts/stream/global") do |result|
-      if result.success?
-        p result.object
-      elsif result.failure?
-        p result.error.localizedDescription
-      end
-    end
+    url_cache = NSURLCache.alloc.initWithMemoryCapacity(4 * 1024 * 1024, diskCapacity:20 * 1024 * 1024,diskPath:nil)
+    NSURLCache.setSharedURLCache(url_cache)
 
-    # Vanilla URL requests
-    AFMotion::JSON.get("http://jsonip.com") do |result|
-      p result.object["ip"]
-    end
+    AFNetworkActivityIndicatorManager.sharedManager.enabled = true
 
-    AFMotion::HTTP.get("http://google.com") do |result|
-      p result.body
-    end
+    viewController = GlobalTimelineViewController.alloc.initWithStyle(UITableViewStylePlain)
+
+    self.navigationController = UINavigationController.alloc.initWithRootViewController(viewController)
+    self.navigationController.navigationBar.tintColor = UIColor.darkGrayColor
+
+    self.window = UIWindow.alloc.initWithFrame(UIScreen.mainScreen.bounds)
+    self.window.backgroundColor = UIColor.whiteColor
+    self.window.rootViewController = self.navigationController
+    self.window.makeKeyAndVisible
 
     true
   end

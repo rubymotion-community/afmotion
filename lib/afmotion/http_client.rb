@@ -80,8 +80,8 @@ class AFHTTPClient
   AFMotion::HTTP_METHODS.each do |method|
     # EX client.get('my/resource.json')
     define_method "#{method}", -> (path, parameters = {}, &callback) do
-      method = "#{method}Path:parameters:success:failure:"
-      self.send(method, path, parameters,
+      fn = "#{method}Path:parameters:success:failure:"
+      self.send(fn, path, parameters,
         lambda {|operation, responseObject|
           result = AFMotion::HTTPResult.new(operation, responseObject, nil)
           callback.call(result)
