@@ -52,6 +52,12 @@ Loading images from the internet is pretty common. AFNetworking's existing metho
   image_view.url = {url: "http://i.imgur.com/r4uwx.jpg", placeholder: placeholder}
 ```
 
+## Install
+
+1. `gem install afmotion`
+
+2. `require 'afmotion'` or add to your `Gemfile`
+
 ## Overview
 
 ### Results
