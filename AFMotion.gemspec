@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.summary     = "A RubyMotion Wrapper for AFNetworking"
   s.description = "A RubyMotion Wrapper for AFNetworking"
 
-  s.files         = `git ls-files`.split($\)
+  s.files         = `git ls-files`.split($\).delete_if {|x| x.include? "example"}
   s.test_files    = s.files.grep(%r{^(test|spec|features)/})
   s.require_paths = ["lib"]
 
