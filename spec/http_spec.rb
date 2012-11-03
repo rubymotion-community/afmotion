@@ -11,8 +11,23 @@ describe "AFMotion" do
       end
 
       describe ".get" do
-        it "should work" do
+        before do
+          @result = nil
+        end
+
+        it "should work with string" do
           _module.get("http://google.com") do |result|
+            @result = result
+            resume
+          end
+          wait_max(10) do
+            @result.nil?.should == false
+          end
+        end
+
+        it "should work with request" do
+          request = NSURLRequest.requestWithURL(NSURL.URLWithString("http://google.com"))
+          _module.get(request) do |result|
             @result = result
             resume
           end
