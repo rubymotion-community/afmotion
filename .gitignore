@@ -1,5 +1,7 @@
 .repl_history
 build
+.build
+libPods.a
 tags
 resources/*.nib
 resources/*.momd
