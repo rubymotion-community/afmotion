@@ -38,7 +38,19 @@ AFMotion::Client.shared.get("stream/0/posts/stream/global") do |result|
 end
 ```
 
-If you use more than one client in your app, you can use `AFMotion::Client.build` instead of `build_shared`.
+### Images
+
+Loading images from the internet is pretty common. AFNetworking's existing methods aren't bad at all, but just incase you want extra Ruby:
+
+```ruby
+  image_view = UIImageView.alloc.initWithFrame CGRectMake(0, 0, 100, 100)
+  image_view.url = "http://i.imgur.com/r4uwx.jpg"
+
+  # or
+
+  placeholder = UIImage.imageNamed "placeholder-avatar"
+  image_view.url = {url: "http://i.imgur.com/r4uwx.jpg", placeholder: placeholder}
+```
 
 ## Overview
 
@@ -113,7 +125,7 @@ end
 
 If you're constantly used one web service, you can use the `AFMotion::Client.shared` variable have a common reference. It can be set like a normal variable or created with `AFMotion::Client.build_shared`.
 
-#### DSL
+#### Client Building DSL
 
 The `AFMotion::Client` DSL allows the following properties:
 
