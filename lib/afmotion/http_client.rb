@@ -22,6 +22,8 @@ module AFMotion
                   AFPropertyListRequestOperation
                 when "xml"
                   AFXMLRequestOperation
+                when "http"
+                  AFHTTPRequestOperation
                 else
                   raise "Not a valid operation: #{operation.inspect}"
                 end

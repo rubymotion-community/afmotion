@@ -11,6 +11,7 @@ module AFMotion
           end)
 
           operation.start
+          operation
         end)
       end
     end
