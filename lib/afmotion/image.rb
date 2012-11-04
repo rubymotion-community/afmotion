@@ -2,9 +2,9 @@ class UIImageView
   def url=(url)
     case url
     when Hash
-      self.setImageWithURL(url[:url].to_url, placeholderImage: url[:placeholder])
+      self.setImageWithURL((url[:url] && url[:url].to_url), placeholderImage: url[:placeholder])
     else
-      self.setImageWithURL(url.to_url)
+      self.setImageWithURL(url && url.to_url)
     end
   end
 end

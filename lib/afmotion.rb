@@ -9,8 +9,4 @@ Motion::Project::App.setup do |app|
   Dir.glob(File.join(File.dirname(__FILE__), 'afmotion/**/*.rb')).each do |file|
     app.files.unshift(file)
   end
-
-  app.pods do
-    pod 'AFNetworking'
-  end
 end
