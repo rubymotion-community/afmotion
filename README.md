@@ -58,6 +58,18 @@ Loading images from the internet is pretty common. AFNetworking's existing metho
 
 2. `require 'afmotion'` or add to your `Gemfile`
 
+3. In your `Rakefile`, add:
+
+```ruby
+Motion::Project::App.setup do |app|
+  ...
+
+  app.pods do
+    pod 'AFNetworking'
+  end
+end
+```
+
 ## Overview
 
 ### Results
