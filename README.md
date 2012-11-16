@@ -115,8 +115,16 @@ end
 There are wrappers which automatically run a URL request for a given URL and HTTP method, of the form:
 
 ```ruby
-AFMotion::[Operation Type].[HTTP method](url) do |result|
+AFMotion::[Operation Type].[HTTP method](url, [Parameters = {}]) do |result|
   ...
+end
+```
+
+Example:
+
+```ruby
+AFMotion::HTTP.get("http://google.com", q: "rubymotion") do |result|
+  # sends request to http://google.com?q=1
 end
 ```
 
