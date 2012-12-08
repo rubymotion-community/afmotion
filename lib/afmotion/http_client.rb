@@ -90,7 +90,6 @@ class AFHTTPClient
           callback.call(result)
         })
     end
-
   end
 
   # options can be

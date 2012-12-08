@@ -52,6 +52,14 @@ Loading images from the internet is pretty common. AFNetworking's existing metho
   image_view.url = {url: "http://i.imgur.com/r4uwx.jpg", placeholder: placeholder}
 ```
 
+You can also request arbitrary images:
+
+```ruby
+  AFMotion::Image.get("https://www.google.com/images/srpr/logo3w.png") do |result|
+    image_view = UIImageView.alloc.initWithImage(result.object)
+  end
+```
+
 ## Install
 
 1. `gem install afmotion`
@@ -86,6 +94,7 @@ AFMotion::some_function do |result|
     # For JSON and PLIST, this is usually a Hash.
     # For XML, this is an NSXMLParser
     # For HTTP, this is an NSURLResponse
+    # For Image, this is a UIImage
     p result.object
 
   elsif result.failure?
@@ -109,6 +118,7 @@ end
 - `AFMotion::Operation::JSON.for_request...`
 - `AFMotion::Operation::XML.for_request...`
 - `AFMotion::Operation::PLIST.for_request...`
+- `AFMotion::Operation::Image.for_request...`
 
 ### One-off Requests
 
@@ -132,6 +142,7 @@ end
 - `AFMotion::JSON.get/post/put/patch/delete(url)...`
 - `AFMotion::XML.get/post/put/patch/delete(url)...`
 - `AFMotion::PLIST.get/post/put/patch/delete(url)...`
+- `AFMotion::Image.get/post/put/patch/delete(url)...`
 
 ### HTTP Client
 

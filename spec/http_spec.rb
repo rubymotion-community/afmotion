@@ -38,4 +38,22 @@ describe "AFMotion" do
       end
     end
   end
+
+  describe "AFMotion::Image" do
+    before do
+      @result = nil
+    end
+
+    it "should work with an image" do
+      url = "https://www.google.com/images/srpr/logo3w.png"
+      AFMotion::Image.get(url) do |result|
+        @result = result
+        resume
+      end
+      wait_max(10) do
+        @result.nil?.should == false
+        @result.object.is_a?(UIImage).should == true
+      end
+    end
+  end
 end

@@ -61,5 +61,23 @@ module AFMotion
         )
       end    
     end
+
+    module Image
+      def self.for_request(request, &callback)
+        operation = AFImageRequestOperation.imageRequestOperationWithRequest(request,
+          imageProcessingBlock: lambda {|ui_image|
+            return ui_image
+          },
+          success: lambda { |request, response, ui_image|
+            result = AFMotion::HTTPResult.new(operation, ui_image, nil)
+            callback.call(result)
+          },
+          failure: lambda { |request, response, error|
+            result = AFMotion::HTTPResult.new(operation, nil, error)
+            callback.call(result)
+          }
+        )
+      end
+    end
   end
 end

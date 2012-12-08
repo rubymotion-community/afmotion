@@ -76,4 +76,17 @@ module AFMotion
       AFPropertyListParameterEncoding
     end
   end
+
+  module Image
+    include AFMotion::HTTPBuilder
+
+    module_function
+    def request_module
+      AFMotion::Operation::Image
+    end
+
+    def parameter_encoding
+      AFFormURLParameterEncoding
+    end
+  end
 end
