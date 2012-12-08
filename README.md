@@ -134,7 +134,7 @@ Example:
 
 ```ruby
 AFMotion::HTTP.get("http://google.com", q: "rubymotion") do |result|
-  # sends request to http://google.com?q=1
+  # sends request to http://google.com?q=rubymotion
 end
 ```
 
