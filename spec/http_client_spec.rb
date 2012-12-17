@@ -101,4 +101,37 @@ describe "AFHTTPClient" do
       @client.defaultValueForHeader("Authorization").split[0].should == "Token"
     end
   end
+
+  describe "#multipart" do
+    it "should trigger multipart logic" do
+      @client.multipart.should == @client
+      @client.instance_variable_get("@multipart").should == true
+    end
+
+    it "should trigger multipart request" do
+      @client.multipart.post("", test: "Herp") do |result|
+        @result = result
+        resume
+      end
+
+      wait_max(10) do
+        @result.should.not == nil
+        @result.operation.request.valueForHTTPHeaderField("Content-Type").include?("multipart/form-data").should == true
+      end
+    end
+
+    it "should work with form data" do
+      @client.multipart.post("", test: "Herp") do |result, form_data|
+        if result
+          resume
+        else
+          @form_data = form_data
+        end
+      end
+
+      wait_max(10) do
+        @form_data.should.not == nil
+      end
+    end
+  end
 end

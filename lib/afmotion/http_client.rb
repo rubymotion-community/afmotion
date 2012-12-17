@@ -80,16 +80,49 @@ class AFHTTPClient
   AFMotion::HTTP_METHODS.each do |method|
     # EX client.get('my/resource.json')
     define_method "#{method}", -> (path, parameters = {}, &callback) do
-      fn = "#{method}Path:parameters:success:failure:"
-      self.send(fn, path, parameters,
-        lambda {|operation, responseObject|
-          result = AFMotion::HTTPResult.new(operation, responseObject, nil)
-          callback.call(result)
-        }, lambda {|operation, error|
-          result = AFMotion::HTTPResult.new(operation, nil, error)
-          callback.call(result)
-        })
+      if @multipart
+        multipart_callback = callback.arity == 1 ? nil : lambda { |formData|
+            callback.call(nil, formData)
+          }
+        request = self.multipartFormRequestWithMethod(method, path: path,
+          parameters: parameters,constructingBodyWithBlock: multipart_callback)
+        operation = self.HTTPRequestOperationWithRequest(request,
+          success: lambda {|operation, responseObject|
+            result = AFMotion::HTTPResult.new(operation, responseObject, nil)
+            case callback.arity
+            when 1
+              callback.call(result)
+            when 2
+              callback.call(result, nil)
+            end
+          }, failure: lambda {|operation, error|
+            result = AFMotion::HTTPResult.new(operation, nil, error)
+            case callback.arity
+            when 1
+              callback.call(result)
+            when 2
+              callback.call(result, nil)
+            end
+          })
+        self.enqueueHTTPRequestOperation(operation)
+        @multipart = nil
+      else
+        fn = "#{method}Path:parameters:success:failure:"
+        self.send(fn, path, parameters,
+          lambda {|operation, responseObject|
+            result = AFMotion::HTTPResult.new(operation, responseObject, nil)
+            callback.call(result)
+          }, lambda {|operation, error|
+            result = AFMotion::HTTPResult.new(operation, nil, error)
+            callback.call(result)
+          })
+      end
     end
+  end
+
+  def multipart
+    @multipart = true
+    self
   end
 
   # options can be

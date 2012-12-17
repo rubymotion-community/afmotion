@@ -162,6 +162,40 @@ end
 
 If you're constantly used one web service, you can use the `AFMotion::Client.shared` variable have a common reference. It can be set like a normal variable or created with `AFMotion::Client.build_shared`.
 
+`AFHTTPClient` supports methods of the form `AFHTTPClient#get/post/put/patch/delete(url, request_parameters)`. The `request_parameters` is a hash containing your parameters to attach as the request body or URL parameters, depending on request type. For example:
+
+```ruby
+client.get("users", id: 1) do |result|
+  ...
+end
+
+client.post("users", name: "@clayallsopp", library: "AFMotion") do |result|
+  ...
+end
+```
+
+#### Multipart Requests
+
+`AFHTTPClient` supports multipart form requests (i.e. for image uploading). Simply prepend `multipart` to any other URL request and it'll convert your parameters into properly encoding multipart data:
+
+```ruby
+# an instance of UIImage
+image = my_function.get_image
+data = UIImagePNGRepresentation(image)
+
+client.multipart.post("avatars") do |result, form_data|
+  if form_data
+    # Called before request runs
+    # see: https://github.com/AFNetworking/AFNetworking/wiki/AFNetworking-FAQ
+    form_data.appendPartWithFileData(data, mimeType: "image/png", name: "avatar")
+  elsif result.success?
+    ...
+  else
+    ...
+  end
+end
+```
+
 #### Client Building DSL
 
 The `AFMotion::Client` DSL allows the following properties:
