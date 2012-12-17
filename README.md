@@ -176,7 +176,7 @@ end
 
 #### Multipart Requests
 
-`AFHTTPClient` supports multipart form requests (i.e. for image uploading). Simply prepend `multipart` to any other URL request and it'll convert your parameters into properly encoding multipart data:
+`AFHTTPClient` supports multipart form requests (i.e. for image uploading). Simply prepend `multipart` to any other request method and it'll convert your parameters into properly encoded multipart data:
 
 ```ruby
 # an instance of UIImage
