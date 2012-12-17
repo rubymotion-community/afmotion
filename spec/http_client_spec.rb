@@ -133,5 +133,25 @@ describe "AFHTTPClient" do
         @form_data.should.not == nil
       end
     end
+
+    it "should have upload callback with raw progress" do
+      image = UIImage.imageNamed("test")
+      @data = UIImagePNGRepresentation(image)
+      @client = AFHTTPClient.clientWithBaseURL("http://bing.com/".to_url)
+      @client.multipart.post("", test: "Herp") do |result, form_data, progress|
+        if form_data
+          form_data.appendPartWithFileData(@data, name: "test", fileName:"test.png", mimeType: "image/png")
+        elsif progress
+          @progress ||= progress
+        elsif result
+          resume
+        end
+      end
+
+      wait_max(20) do
+        @progress.should <= 1.0
+        @progress.should.not == nil
+      end
+    end
   end
 end

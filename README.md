@@ -187,7 +187,26 @@ client.multipart.post("avatars") do |result, form_data|
   if form_data
     # Called before request runs
     # see: https://github.com/AFNetworking/AFNetworking/wiki/AFNetworking-FAQ
-    form_data.appendPartWithFileData(data, mimeType: "image/png", name: "avatar")
+    form_data.appendPartWithFileData(data, name: "avatar", fileName:"avatar.png", mimeType: "image/png")
+  elsif result.success?
+    ...
+  else
+    ...
+  end
+end
+```
+
+If you want to track upload progress, you can add a third callback argument which returns the upload percentage between 0.0 and 1.0:
+
+```ruby
+client.multipart.post("avatars") do |result, form_data, progress|
+  if form_data
+    # Called before request runs
+    # see: https://github.com/AFNetworking/AFNetworking/wiki/AFNetworking-FAQ
+    form_data.appendPartWithFileData(data, name: "avatar", fileName:"avatar.png", mimeType: "image/png")
+  elsif progress
+    # 0.0 <= progress <= 1.0
+    my_widget.update_progress(progress)
   elsif result.success?
     ...
   else
