@@ -207,11 +207,7 @@ client.multipart.post("avatars") do |result, form_data, progress|
   elsif progress
     # 0.0 <= progress <= 1.0
     my_widget.update_progress(progress)
-  elsif result.success?
-    ...
-  else
-    ...
-  end
+  ...
 end
 ```
 
