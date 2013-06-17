@@ -17,8 +17,8 @@ module AFMotion
     end
 
     def body
-      if operation && operation.responseData
-        NSString.stringWithUTF8String(operation.responseData.bytes)
+      if operation && operation.responseString
+        operation.responseString
       end
     end
   end
