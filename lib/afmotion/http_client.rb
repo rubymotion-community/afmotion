@@ -125,16 +125,17 @@ class AFHTTPClient
         end
         self.enqueueHTTPRequestOperation(operation)
         @multipart = nil
+        @operation = operation
       else
-        fn = "#{method}Path:parameters:success:failure:"
-        self.send(fn, path, parameters,
-          lambda {|operation, responseObject|
+        request = self.requestWithMethod(method.upcase, path:path, parameters:parameters)
+        @operation = self.HTTPRequestOperationWithRequest(request, success: lambda {|operation, responseObject|
             result = AFMotion::HTTPResult.new(operation, responseObject, nil)
             callback.call(result)
-          }, lambda {|operation, error|
+          }, failure: lambda {|operation, error|
             result = AFMotion::HTTPResult.new(operation, nil, error)
             callback.call(result)
           })
+        self.enqueueHTTPRequestOperation(@operation)
       end
     end
   end
