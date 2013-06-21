@@ -136,6 +136,7 @@ class AFHTTPClient
             callback.call(result)
           })
         self.enqueueHTTPRequestOperation(@operation)
+        @operation
       end
     end
   end
