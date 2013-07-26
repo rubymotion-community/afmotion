@@ -2,7 +2,7 @@
 build
 .build
 libPods.a
-vendor/Pods/Pods.xcodeproj
+vendor/Pods/
 tags
 resources/*.nib
 resources/*.momd
