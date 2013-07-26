@@ -18,13 +18,15 @@ class NSMutableURLRequest
     params.delete :__encoding__
     params.delete :__string_encoding__
 
-    if ["GET", "HEAD", "DELETE", "PUT"].member? method
+    use_url_based_params = ["GET", "HEAD", "DELETE", "PUT"].member?(method)
+
+    if use_url_based_params && !params.empty?
       url_string = String.new(self.url.absoluteString)
       has_query = url_string.rangeOfString("?").location == NSNotFound
       format = has_query ? "?" : "&"
       encoded = AFQueryStringFromParametersWithEncoding(params, string_encoding)
       self.url = (url_string << format) << encoded
-    else
+    elsif !use_url_based_params
       charset = CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(string_encoding))
       error = Pointer.new(:object)
       case af_encoding
