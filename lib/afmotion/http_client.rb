@@ -80,7 +80,7 @@ class AFHTTPClient
   AFMotion::HTTP_METHODS.each do |method|
     # EX client.get('my/resource.json')
     define_method "#{method}", -> (path, parameters = {}, &callback) do
-      if @multipart
+      if multipart?
         @operation = create_multipart_operation(method, path, parameters, &callback)
         self.enqueueHTTPRequestOperation(@operation)
         @multipart = nil
@@ -152,6 +152,10 @@ class AFHTTPClient
   def multipart
     @multipart = true
     self
+  end
+
+  def multipart?
+    !!@multipart
   end
 
   # options can be
