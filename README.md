@@ -211,6 +211,21 @@ client.multipart.post("avatars") do |result, form_data, progress|
 end
 ```
 
+#### Client Operations
+
+If you want to grab an `AFURLConnectionOperation` from your client instance, use `create_operation` or `create_multipart_operation`:
+
+```ruby
+operation = client.create_operation(:get, "http://google.com", {q: "hello"}) do |result|
+end
+
+multipart_operation = client.create_multipart_operation(:get, "http://google.com", {q: "hello"}) do |result, form_data, progress|
+end
+
+# elsewhere
+client.enqueueHTTPRequestOperation(operation)
+```
+
 #### Client Building DSL
 
 The `AFMotion::Client` DSL allows the following properties:
