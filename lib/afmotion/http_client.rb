@@ -81,64 +81,72 @@ class AFHTTPClient
     # EX client.get('my/resource.json')
     define_method "#{method}", -> (path, parameters = {}, &callback) do
       if @multipart
-        multipart_callback = callback.arity == 1 ? nil : lambda { |formData|
-          callback.call(nil, formData)
-        }
-        upload_callback = callback.arity > 2 ? lambda { |bytes_written_now, total_bytes_written, total_bytes_expect|
-          case callback.arity
-          when 3
-            callback.call(nil, nil, total_bytes_written.to_f / total_bytes_expect.to_f)
-          when 5
-            callback.call(nil, nil, bytes_written_now, total_bytes_written, total_bytes_expect)
-          end
-        } : nil
-        request = self.multipartFormRequestWithMethod(method, path: path,
-          parameters: parameters,constructingBodyWithBlock: multipart_callback)
-        operation = self.HTTPRequestOperationWithRequest(request,
-          success: lambda {|operation, responseObject|
-            result = AFMotion::HTTPResult.new(operation, responseObject, nil)
-            case callback.arity
-            when 1
-              callback.call(result)
-            when 2
-              callback.call(result, nil)
-            when 3
-              callback.call(result, nil, nil)
-            when 5
-              callback.call(result, nil, nil, nil, nil)
-            end
-          }, failure: lambda {|operation, error|
-            result = AFMotion::HTTPResult.new(operation, nil, error)
-            case callback.arity
-            when 1
-              callback.call(result)
-            when 2
-              callback.call(result, nil)
-            when 3
-              callback.call(result, nil, nil)
-            when 5
-              callback.call(result, nil, nil, nil, nil)
-            end
-          })
-        if upload_callback
-          operation.setUploadProgressBlock(upload_callback)
-        end
-        self.enqueueHTTPRequestOperation(operation)
-        @multipart = nil
-        @operation = operation
-      else
-        request = self.requestWithMethod(method.upcase, path:path, parameters:parameters)
-        @operation = self.HTTPRequestOperationWithRequest(request, success: lambda {|operation, responseObject|
-            result = AFMotion::HTTPResult.new(operation, responseObject, nil)
-            callback.call(result)
-          }, failure: lambda {|operation, error|
-            result = AFMotion::HTTPResult.new(operation, nil, error)
-            callback.call(result)
-          })
+        @operation = create_multipart_operation(method, path, parameters, &callback)
         self.enqueueHTTPRequestOperation(@operation)
-        @operation
+        @multipart = nil
+      else
+        @operation = create_operation(method, path, parameters, &callback)
+        self.enqueueHTTPRequestOperation(@operation)
       end
+      @operation
     end
+  end
+
+  def create_multipart_operation(method, path, parameters = {}, &callback)
+    multipart_callback = callback.arity == 1 ? nil : lambda { |formData|
+      callback.call(nil, formData)
+    }
+    upload_callback = callback.arity > 2 ? lambda { |bytes_written_now, total_bytes_written, total_bytes_expect|
+      case callback.arity
+      when 3
+        callback.call(nil, nil, total_bytes_written.to_f / total_bytes_expect.to_f)
+      when 5
+        callback.call(nil, nil, bytes_written_now, total_bytes_written, total_bytes_expect)
+      end
+    } : nil
+    request = self.multipartFormRequestWithMethod(method, path: path,
+      parameters: parameters,constructingBodyWithBlock: multipart_callback)
+    operation = self.HTTPRequestOperationWithRequest(request,
+      success: lambda {|operation, responseObject|
+        result = AFMotion::HTTPResult.new(operation, responseObject, nil)
+        case callback.arity
+        when 1
+          callback.call(result)
+        when 2
+          callback.call(result, nil)
+        when 3
+          callback.call(result, nil, nil)
+        when 5
+          callback.call(result, nil, nil, nil, nil)
+        end
+      }, failure: lambda {|operation, error|
+        result = AFMotion::HTTPResult.new(operation, nil, error)
+        case callback.arity
+        when 1
+          callback.call(result)
+        when 2
+          callback.call(result, nil)
+        when 3
+          callback.call(result, nil, nil)
+        when 5
+          callback.call(result, nil, nil, nil, nil)
+        end
+      })
+    if upload_callback
+      operation.setUploadProgressBlock(upload_callback)
+    end
+    operation
+  end
+
+  def create_operation(method, path, parameters = {}, &callback)
+    request = self.requestWithMethod(method.upcase, path:path, parameters:parameters)
+    self.HTTPRequestOperationWithRequest(request, success: lambda {|operation, responseObject|
+            result = AFMotion::HTTPResult.new(operation, responseObject, nil)
+            callback.call(result)
+          }, failure: lambda {|operation, error|
+            result = AFMotion::HTTPResult.new(operation, nil, error)
+            callback.call(result)
+          })
   end
 
   def multipart
