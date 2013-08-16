@@ -174,6 +174,30 @@ class AFHTTPClient
     end
   end
 
+  class HeaderWrapper
+    def initialize(client)
+      @client = WeakRef.new(client)
+    end
+
+    def [](header)
+      @client.defaultValueForHeader(header)
+    end
+
+    def []=(header, value)
+      @client.setDefaultHeader(header, value: value)
+    end
+
+    def delete(header)
+      value = self[header]
+      @client.setDefaultHeader(header, value: nil)
+      value
+    end
+  end
+
+  def headers
+    @header_wrapper ||= HeaderWrapper.new(self)
+  end
+
   private
   # To force RubyMotion pre-compilation of these methods
   def dummy

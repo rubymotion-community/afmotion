@@ -211,6 +211,21 @@ client.multipart.post("avatars") do |result, form_data, progress|
 end
 ```
 
+#### Headers
+
+You can set default HTTP headers using `client.headers`, which is sort of like a `Hash`:
+
+```ruby
+client.headers["Accept"]
+#=> "application/json"
+
+client.headers["Accept"] = "something_else"
+#=> "application/something_else"
+
+client.headers.delete "Accept"
+#=> "application/something_else"
+```
+
 #### Client Operations
 
 If you want to grab an `AFURLConnectionOperation` from your client instance, use `create_operation` or `create_multipart_operation`:

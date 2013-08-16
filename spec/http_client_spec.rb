@@ -102,6 +102,30 @@ describe "AFHTTPClient" do
     end
   end
 
+  describe "#headers" do
+    describe "#[]" do
+      it "should return a header" do
+        @client.setDefaultHeader("test", value: "test_value")
+        @client.headers["test"].should == "test_value"
+      end
+    end
+
+    describe "#[]=" do
+      it "should set a header" do
+        @client.headers["test"] = "test_set_value"
+        @client.defaultValueForHeader("test").should == "test_set_value"
+      end
+    end
+
+    describe "#delete" do
+      it "should remove a header" do
+        @client.setDefaultHeader("test", value: "test_value")
+        @client.headers.delete("test").should == "test_value"
+        @client.defaultValueForHeader("test").should == nil
+      end
+    end
+  end
+
   describe "#multipart" do
     it "should trigger multipart logic" do
       @client.multipart.should == @client
