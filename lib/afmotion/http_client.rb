@@ -149,7 +149,7 @@ class AFHTTPClient
           })
   end
 
-  def multipart
+  def multipart!
     @multipart = true
     self
   end

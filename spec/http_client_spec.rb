@@ -128,12 +128,12 @@ describe "AFHTTPClient" do
 
   describe "#multipart" do
     it "should trigger multipart logic" do
-      @client.multipart.should == @client
+      @client.multipart!.should == @client
       @client.instance_variable_get("@multipart").should == true
     end
 
     it "should trigger multipart request" do
-      @client.multipart.post("", test: "Herp") do |result|
+      @client.multipart!.post("", test: "Herp") do |result|
         @result = result
         resume
       end
@@ -145,7 +145,7 @@ describe "AFHTTPClient" do
     end
 
     it "should work with form data" do
-      @client.multipart.post("", test: "Herp") do |result, form_data|
+      @client.multipart!.post("", test: "Herp") do |result, form_data|
         if result
           resume
         else
@@ -162,7 +162,7 @@ describe "AFHTTPClient" do
       image = UIImage.imageNamed("test")
       @data = UIImagePNGRepresentation(image)
       @client = AFHTTPClient.clientWithBaseURL("http://bing.com/".to_url)
-      @client.multipart.post("", test: "Herp") do |result, form_data, progress|
+      @client.multipart!.post("", test: "Herp") do |result, form_data, progress|
         if form_data
           form_data.appendPartWithFileData(@data, name: "test", fileName:"test.png", mimeType: "image/png")
         elsif progress

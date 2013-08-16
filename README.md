@@ -176,14 +176,14 @@ end
 
 #### Multipart Requests
 
-`AFHTTPClient` supports multipart form requests (i.e. for image uploading). Simply prepend `multipart` to any other request method and it'll convert your parameters into properly encoded multipart data:
+`AFHTTPClient` supports multipart form requests (i.e. for image uploading). Simply prepend `multipart!` to any other request method and it'll convert your parameters into properly encoded multipart data:
 
 ```ruby
 # an instance of UIImage
 image = my_function.get_image
 data = UIImagePNGRepresentation(image)
 
-client.multipart.post("avatars") do |result, form_data|
+client.multipart!.post("avatars") do |result, form_data|
   if form_data
     # Called before request runs
     # see: https://github.com/AFNetworking/AFNetworking/wiki/AFNetworking-FAQ
@@ -199,7 +199,7 @@ end
 If you want to track upload progress, you can add a third callback argument which returns the upload percentage between 0.0 and 1.0:
 
 ```ruby
-client.multipart.post("avatars") do |result, form_data, progress|
+client.multipart!.post("avatars") do |result, form_data, progress|
   if form_data
     # Called before request runs
     # see: https://github.com/AFNetworking/AFNetworking/wiki/AFNetworking-FAQ
