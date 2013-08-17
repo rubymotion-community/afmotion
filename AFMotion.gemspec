@@ -9,6 +9,7 @@ Gem::Specification.new do |s|
   s.homepage    = "https://github.com/clayallsopp/AFMotion"
   s.summary     = "A RubyMotion Wrapper for AFNetworking"
   s.description = "A RubyMotion Wrapper for AFNetworking"
+  s.license = 'MIT'
 
   s.files         = `git ls-files`.split($\).delete_if {|x| x.include? "example"}
   s.test_files    = s.files.grep(%r{^(test|spec|features)/})
