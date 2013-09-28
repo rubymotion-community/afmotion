@@ -39,7 +39,6 @@ module AFMotion
     end
 
     def xml!
-      with_request_serializer(AFXMLParserRequestSerializer).
         with_response_serializer(AFXMLParserResponseSerializer)
     end
 
@@ -55,9 +54,9 @@ module AFMotion
 end
 
 class AFHTTPRequestOperation
-  include AFMotion::Operation::Serialization
+  include AFMotion::Serialization
 end
 
 class AFHTTPRequestOperationManager
-  include AFMotion::Operation::Serialization
+  include AFMotion::Serialization
 end

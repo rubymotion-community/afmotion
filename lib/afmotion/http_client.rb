@@ -44,13 +44,11 @@ module AFMotion
 
     OPERATION_TO_REQUEST_SERIALIZER = {
       json: AFJSONRequestSerializer,
-      xml: AFXMLParserRequestSerializer,
-      plist: AFPropertyListRequestSerializer,
-      image: AFImageResponseSerializer
+      plist: AFPropertyListRequestSerializer
     }
     def request_serializer(serializer)
       if serializer.is_a?(Symbol) || serializer.is_a?(String)
-        @operation_manager.requestSerializer = OPERATION_TO_REQUEST_SERIALIZER[serializer.to_sym]
+        @operation_manager.requestSerializer = OPERATION_TO_REQUEST_SERIALIZER[serializer.to_sym].serializer
       else
         @operation_manager.requestSerializer = serializer
       end
@@ -59,11 +57,12 @@ module AFMotion
     OPERATION_TO_RESPONSE_SERIALIZER = {
       json: AFJSONResponseSerializer,
       xml: AFXMLParserResponseSerializer,
-      plist: AFPropertyListResponseSerializer
+      plist: AFPropertyListResponseSerializer,
+      image: AFImageResponseSerializer
     }
-    def response_serializer(operation)
+    def response_serializer(serializer)
       if serializer.is_a?(Symbol) || serializer.is_a?(String)
-        @operation_manager.responseSerializer = OPERATION_TO_RESPONSE_SERIALIZER[serializer.to_sym]
+        @operation_manager.responseSerializer = OPERATION_TO_RESPONSE_SERIALIZER[serializer.to_sym].serializer
       else
         @operation_manager.responseSerializer = serializer
       end
@@ -75,16 +74,12 @@ class AFHTTPRequestOperationManager
   AFMotion::HTTP_METHODS.each do |method|
     # EX client.get('my/resource.json')
     define_method "#{method}", -> (path, parameters = {}, &callback) do
-      operation = create_operation(method, path, parameters, &callback)
-      self.operationQueue.addOperation(operation)
-      operation
+      create_operation(method, path, parameters, &callback)
     end
   end
 
   def multipart_post(path, parameters = {}, &callback)
-    operation = create_multipart_operation(path, parameters, &callback)
-    self.operationQueue.addOperation(operation)
-    operation
+    create_multipart_operation(path, parameters, &callback)
   end
 
   def create_multipart_operation(path, parameters = {}, &callback)
@@ -100,6 +95,7 @@ class AFHTTPRequestOperationManager
           progress = total_bytes_written.to_f / total_bytes_expect.to_f
         else
           callback.call(result, form_data, progress)
+        end
       when 5
         callback.call(result, form_data, bytes_written_now, total_bytes_written, total_bytes_expect)
       end
@@ -126,12 +122,10 @@ class AFHTTPRequestOperationManager
     operation
   end
 
-  def create_operation(method, path, parameters = {}, &callback)
-    request = self.requestSerializer.requestWithMethod(method.upcase, URLString:path, parameters:parameters)
-    HTTPRequestOperationWithRequest(request,
-      success: AFMotion::Operation.success_block(callback),
-      failure: AFMotion::Operation.failure_block(callback)
-    )
+  def create_operation(http_method, path, parameters = {}, &callback)
+    method_signature = "#{http_method.upcase}:parameters:success:failure:"
+    method = self.method(method_signature)
+    operation = method.call(path, parameters, AFMotion::Operation.success_block(callback), AFMotion::Operation.failure_block(callback))
   end
 
   def headers
