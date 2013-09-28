@@ -2,24 +2,11 @@ module AFMotion
   module HTTPBuilder
     def self.included(base)
       AFMotion::HTTP_METHODS.each do |method|
-        base.send(:define_singleton_method, method, -> (request_or_url, parameters = {}, &callback) do
-          request = request_or_url
-          if !request.is_a?(NSURLRequest)
-            request = NSMutableURLRequest.requestWithURL(request_or_url.to_url)
-            request.HTTPMethod = method.upcase
-            if [:get, :head].member? method.downcase.to_sym
-              request.HTTPShouldUsePipelining = true
-            end
-            # SEE NSURLRequest_params.rb
-            request.parameters = parameters.merge(__encoding__: self.parameter_encoding)
-          end
-
-          operation = (self.request_module.for_request(request) do |result|
-            callback.call(result)
-          end)
-
-          operation.start
-          operation
+        base.send(:define_singleton_method, method, -> (url, parameters = {}, &callback) do
+          operation_manager.send(method.to_s.upcase, url,
+            parameters: parameters,
+            success: AFMotion::Operation.success_block(callback),
+            failure: AFMotion::Operation.failure_block(callback))
         end)
       end
     end
@@ -29,12 +16,15 @@ module AFMotion
     include AFMotion::HTTPBuilder
 
     module_function
-    def request_module
-      AFMotion::Operation::HTTP
+    def operation_manager
+      @operation_manager ||= begin
+        manager = AFHTTPRequestOperationManager.manager
+        configure_manager(manager)
+        manager
+      end
     end
 
-    def parameter_encoding
-      AFFormURLParameterEncoding
+    def configure_manager(manager)
     end
   end
 
@@ -42,12 +32,8 @@ module AFMotion
     include AFMotion::HTTPBuilder
 
     module_function
-    def request_module
-      AFMotion::Operation::JSON
-    end
-
-    def parameter_encoding
-      AFJSONParameterEncoding
+    def configure_manager(manager)
+      manager.json!
     end
   end
 
@@ -55,12 +41,8 @@ module AFMotion
     include AFMotion::HTTPBuilder
 
     module_function
-    def request_module
-      AFMotion::Operation::XML
-    end
-
-    def parameter_encoding
-      AFFormURLParameterEncoding
+    def configure_manager(manager)
+      manager.xml!
     end
   end
 
@@ -68,12 +50,8 @@ module AFMotion
     include AFMotion::HTTPBuilder
 
     module_function
-    def request_module
-      AFMotion::Operation::PLIST
-    end
-
-    def parameter_encoding
-      AFPropertyListParameterEncoding
+    def configure_manager(manager)
+      manager.plist!
     end
   end
 
@@ -81,12 +59,8 @@ module AFMotion
     include AFMotion::HTTPBuilder
 
     module_function
-    def request_module
-      AFMotion::Operation::Image
-    end
-
-    def parameter_encoding
-      AFFormURLParameterEncoding
+    def configure_operation(operation)
+      operation.image!
     end
   end
 end

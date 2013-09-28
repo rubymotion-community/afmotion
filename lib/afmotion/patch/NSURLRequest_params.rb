@@ -1,6 +1,6 @@
 class NSMutableURLRequest
   alias_method :url, :URL
-  
+
   def url=(url)
     self.setURL(url.to_url)
   end

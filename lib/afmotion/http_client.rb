@@ -1,74 +1,22 @@
 module AFMotion
-  class ClientDSL
-    def initialize(client)
-      @client = client
-    end
-
-    def header(header, value)
-      @client.setDefaultHeader(header, value: value)
-    end
-
-    def authorization(options = {})
-      @client.authorization = options
-    end
-
-    def operation(operation)
-      klass = operation
-      if operation.is_a?(Symbol) or operation.is_a?(String)
-        klass = case operation.to_s
-                when "json"
-                  AFJSONRequestOperation
-                when "plist"
-                  AFPropertyListRequestOperation
-                when "xml"
-                  AFXMLRequestOperation
-                when "http"
-                  AFHTTPRequestOperation
-                else
-                  raise "Not a valid operation: #{operation.inspect}"
-                end
-      end
-
-      @client.registerHTTPOperationClass(klass)
-    end
-
-    def parameter_encoding(encoding)
-      enc = encoding
-      if encoding.is_a?(Symbol) or encoding.is_a?(String)
-        enc = case encoding.to_s
-              when "json"
-                AFJSONParameterEncoding
-              when "plist"
-                AFPropertyListParameterEncoding
-              when "form"
-                AFFormURLParameterEncoding
-              else
-                p "Not a valid parameter encoding: #{encoding.inspect}; using AFFormURLParameterEncoding"
-                AFFormURLParameterEncoding
-              end
-      end
-      @client.parameterEncoding = enc
-    end
-  end
-end
-
-module AFMotion
   class Client
     class << self
       attr_accessor :shared
 
-      # Returns an instance of AFHTTPClient
+      # Returns an instance of AFHTTPRequestOperationManager
       def build(base_url, &block)
-        client = AFHTTPClient.clientWithBaseURL(base_url.to_url)
+        operation_manager = AFHTTPRequestOperationManager.alloc.initWithBaseURL(base_url.to_url)
         if block
-          dsl = AFMotion::ClientDSL.new(client)
+          dsl = AFMotion::ClientDSL.new(operation_manager)
           dsl.instance_eval(&block)
         end
-        client
+        if !operation_manager.operationQueue
+          operation_manager.operationQueue = NSOperationQueue.mainQueue
+        end
+        operation_manager
       end
 
       # Sets AFMotion::Client.shared as the built client
-      # TODO: Make sure this only happens once (dispatch_once not available)
       def build_shared(base_url, &block)
         self.shared = self.build(base_url, &block)
       end
@@ -76,61 +24,101 @@ module AFMotion
   end
 end
 
-class AFHTTPClient
+module AFMotion
+  class ClientDSL
+    def initialize(operation_manager)
+      @operation_manager = WeakRef.new(operation_manager)
+    end
+
+    def header(header, value)
+      @operation_manager.requestSerializer.headers[header] = value
+    end
+
+    def authorization(options = {})
+      @operation_manager.requestSerializer.authorization = options
+    end
+
+    def operation_queue(operation_queue)
+      @operation_manager.operationQueue operation_queue
+    end
+
+    OPERATION_TO_REQUEST_SERIALIZER = {
+      json: AFJSONRequestSerializer,
+      xml: AFXMLParserRequestSerializer,
+      plist: AFPropertyListRequestSerializer,
+      image: AFImageResponseSerializer
+    }
+    def request_serializer(serializer)
+      if serializer.is_a?(Symbol) || serializer.is_a?(String)
+        @operation_manager.requestSerializer = OPERATION_TO_REQUEST_SERIALIZER[serializer.to_sym]
+      else
+        @operation_manager.requestSerializer = serializer
+      end
+    end
+
+    OPERATION_TO_RESPONSE_SERIALIZER = {
+      json: AFJSONResponseSerializer,
+      xml: AFXMLParserResponseSerializer,
+      plist: AFPropertyListResponseSerializer
+    }
+    def response_serializer(operation)
+      if serializer.is_a?(Symbol) || serializer.is_a?(String)
+        @operation_manager.responseSerializer = OPERATION_TO_RESPONSE_SERIALIZER[serializer.to_sym]
+      else
+        @operation_manager.responseSerializer = serializer
+      end
+    end
+  end
+end
+
+class AFHTTPRequestOperationManager
   AFMotion::HTTP_METHODS.each do |method|
     # EX client.get('my/resource.json')
     define_method "#{method}", -> (path, parameters = {}, &callback) do
-      if multipart?
-        @operation = create_multipart_operation(method, path, parameters, &callback)
-        self.enqueueHTTPRequestOperation(@operation)
-        @multipart = nil
-      else
-        @operation = create_operation(method, path, parameters, &callback)
-        self.enqueueHTTPRequestOperation(@operation)
-      end
-      @operation
+      operation = create_operation(method, path, parameters, &callback)
+      self.operationQueue.addOperation(operation)
+      operation
     end
   end
 
-  def create_multipart_operation(method, path, parameters = {}, &callback)
+  def multipart_post(path, parameters = {}, &callback)
+    operation = create_multipart_operation(path, parameters, &callback)
+    self.operationQueue.addOperation(operation)
+    operation
+  end
+
+  def create_multipart_operation(path, parameters = {}, &callback)
+    inner_callback = Proc.new do |result, form_data,  bytes_written_now,  total_bytes_written, total_bytes_expect|
+      case callback.arity
+      when 1
+        callback.call(result)
+      when 2
+        callback.call(result, form_data)
+      when 3
+        progress = nil
+        if total_bytes_written && total_bytes_expect
+          progress = total_bytes_written.to_f / total_bytes_expect.to_f
+        else
+          callback.call(result, form_data, progress)
+      when 5
+        callback.call(result, form_data, bytes_written_now, total_bytes_written, total_bytes_expect)
+      end
+    end
+
     multipart_callback = callback.arity == 1 ? nil : lambda { |formData|
-      callback.call(nil, formData)
+      inner_callback.call(nil, formData)
     }
     upload_callback = callback.arity > 2 ? lambda { |bytes_written_now, total_bytes_written, total_bytes_expect|
-      case callback.arity
-      when 3
-        callback.call(nil, nil, total_bytes_written.to_f / total_bytes_expect.to_f)
-      when 5
-        callback.call(nil, nil, bytes_written_now, total_bytes_written, total_bytes_expect)
-      end
+      inner_callback.call(nil, nil, bytes_written_now, total_bytes_written, total_bytes_expect)
     } : nil
-    request = self.multipartFormRequestWithMethod(method, path: path,
-      parameters: parameters,constructingBodyWithBlock: multipart_callback)
-    operation = self.HTTPRequestOperationWithRequest(request,
+
+    operation = self.POST(path, parameters: parameters, constructingBodyWithBlock: multipart_callback,
       success: lambda {|operation, responseObject|
         result = AFMotion::HTTPResult.new(operation, responseObject, nil)
-        case callback.arity
-        when 1
-          callback.call(result)
-        when 2
-          callback.call(result, nil)
-        when 3
-          callback.call(result, nil, nil)
-        when 5
-          callback.call(result, nil, nil, nil, nil)
-        end
+        inner_callback.call(result)
       }, failure: lambda {|operation, error|
         result = AFMotion::HTTPResult.new(operation, nil, error)
-        case callback.arity
-        when 1
-          callback.call(result)
-        when 2
-          callback.call(result, nil)
-        when 3
-          callback.call(result, nil, nil)
-        when 5
-          callback.call(result, nil, nil, nil, nil)
-        end
+        inner_callback.call(result)
       })
     if upload_callback
       operation.setUploadProgressBlock(upload_callback)
@@ -139,72 +127,26 @@ class AFHTTPClient
   end
 
   def create_operation(method, path, parameters = {}, &callback)
-    request = self.requestWithMethod(method.upcase, path:path, parameters:parameters)
-    self.HTTPRequestOperationWithRequest(request, success: lambda {|operation, responseObject|
-            result = AFMotion::HTTPResult.new(operation, responseObject, nil)
-            callback.call(result)
-          }, failure: lambda {|operation, error|
-            result = AFMotion::HTTPResult.new(operation, nil, error)
-            callback.call(result)
-          })
-  end
-
-  def multipart!
-    @multipart = true
-    self
-  end
-
-  def multipart?
-    !!@multipart
-  end
-
-  # options can be
-  # - {username: ___, password: ____}
-  # or
-  # - {token: ___ }
-  def authorization=(options = {})
-    if options.nil?
-      clearAuthorizationHeader
-    elsif options[:username] && options[:password]
-      setAuthorizationHeaderWithUsername(options[:username], password: options[:password])
-    elsif options[:token]
-      setAuthorizationHeaderWithToken(options[:token])
-    else
-      raise "Not a valid authorization hash: #{options.inspect}"
-    end
-  end
-
-  class HeaderWrapper
-    def initialize(client)
-      @client = WeakRef.new(client)
-    end
-
-    def [](header)
-      @client.defaultValueForHeader(header)
-    end
-
-    def []=(header, value)
-      @client.setDefaultHeader(header, value: value)
-    end
-
-    def delete(header)
-      value = self[header]
-      @client.setDefaultHeader(header, value: nil)
-      value
-    end
+    request = self.requestSerializer.requestWithMethod(method.upcase, URLString:path, parameters:parameters)
+    HTTPRequestOperationWithRequest(request,
+      success: AFMotion::Operation.success_block(callback),
+      failure: AFMotion::Operation.failure_block(callback)
+    )
   end
 
   def headers
-    @header_wrapper ||= HeaderWrapper.new(self)
+    requestSerializer.headers
   end
 
   private
   # To force RubyMotion pre-compilation of these methods
   def dummy
-    self.getPath("", parameters: nil, success: nil, failure: nil)
-    self.postPath("", parameters: nil, success: nil, failure: nil)
-    self.putPath("", parameters: nil, success: nil, failure: nil)
-    self.deletePath("", parameters: nil, success: nil, failure: nil)
-    self.patchPath("", parameters: nil, success: nil, failure: nil)
+    self.GET("", parameters: nil, success: nil, failure: nil)
+    self.HEAD("", parameters: nil, success: nil, failure: nil)
+    self.POST("", parameters: nil, success: nil, failure: nil)
+    self.POST("", parameters: nil, constructingBodyWithBlock: nil, success: nil, failure: nil)
+    self.PUT("", parameters: nil, success: nil, failure: nil)
+    self.DELETE("", parameters: nil, success: nil, failure: nil)
+    self.PATCH("", parameters: nil, success: nil, failure: nil)
   end
 end

@@ -1,83 +1,63 @@
 module AFMotion
   module Operation
-    module HTTP
-      def self.for_request(request, &callback)
-        operation = AFHTTPRequestOperation.alloc.initWithRequest(request)
-        operation.setCompletionBlockWithSuccess(
-          lambda { |operation, responseObject|
-            result = AFMotion::HTTPResult.new(operation, responseObject, nil)
-            callback.call(result)
-          },
-          failure: lambda {|operation, error|
-            result = AFMotion::HTTPResult.new(operation, nil, error)
-            callback.call(result)
-          }
-        )
-        operation
-      end
+    module_function
+    def for_request(ns_url_request, &callback)
+      operation = AFHTTPRequestOperation.alloc.initWithRequest(ns_url_request)
+      operation.setCompletionBlockWithSuccess(success_block(callback), failure: failure_block(callback))
+      operation
     end
 
-    module JSON
-      def self.for_request(request, &callback)
-        operation = AFJSONRequestOperation.JSONRequestOperationWithRequest(request,
-          success: lambda { |request, response, json|
-            result = AFMotion::HTTPResult.new(operation, json, nil)
-            callback.call(result)
-          },
-          failure: lambda { |request, response, error, json|
-            result = AFMotion::HTTPResult.new(operation, json, error)
-            callback.call(result)
-          }
-        )
-      end    
+    def success_block(callback)
+      lambda { |operation, responseObject|
+        result = AFMotion::HTTPResult.new(operation, responseObject, nil)
+        callback.call(result)
+      }
     end
 
-    module XML
-      def self.for_request(request, &callback)
-        operation = AFXMLRequestOperation.XMLParserRequestOperationWithRequest(request,
-          success: lambda { |request, response, document_or_parser|
-            result = AFMotion::HTTPResult.new(operation, document_or_parser, nil)
-            callback.call(result)
-          },
-          failure: lambda { |request, response, error, document_or_parser|
-            result = AFMotion::HTTPResult.new(operation, document_or_parser, error)
-            callback.call(result)
-          }
-        )
-      end    
-    end
-
-    module PLIST
-      def self.for_request(request, &callback)
-        operation = AFPropertyListRequestOperation.propertyListRequestOperationWithRequest(request,
-          success: lambda { |request, response, propertyList|
-            result = AFMotion::HTTPResult.new(operation, propertyList, nil)
-            callback.call(result)
-          },
-          failure: lambda { |request, response, error, propertyList|
-            result = AFMotion::HTTPResult.new(operation, propertyList, error)
-            callback.call(result)
-          }
-        )
-      end    
-    end
-
-    module Image
-      def self.for_request(request, &callback)
-        operation = AFImageRequestOperation.imageRequestOperationWithRequest(request,
-          imageProcessingBlock: lambda {|ui_image|
-            return ui_image
-          },
-          success: lambda { |request, response, ui_image|
-            result = AFMotion::HTTPResult.new(operation, ui_image, nil)
-            callback.call(result)
-          },
-          failure: lambda { |request, response, error|
-            result = AFMotion::HTTPResult.new(operation, nil, error)
-            callback.call(result)
-          }
-        )
-      end
+    def failure_block(callback)
+      lambda { |operation, error|
+        result = AFMotion::HTTPResult.new(operation, nil, error)
+        callback.call(result)
+      }
     end
   end
+
+  module Serialization
+    def with_request_serializer(serializer_klass)
+      self.requestSerializer = serializer_klass.serializer
+      self
+    end
+
+    def with_response_serializer(serializer_klass)
+      self.responseSerializer = serializer_klass.serializer
+      self
+    end
+
+    def json!
+      with_request_serializer(AFJSONRequestSerializer).
+        with_response_serializer(AFJSONResponseSerializer)
+    end
+
+    def xml!
+      with_request_serializer(AFXMLParserRequestSerializer).
+        with_response_serializer(AFXMLParserResponseSerializer)
+    end
+
+    def plist!
+      with_request_serializer(AFPropertyListRequestSerializer).
+        with_response_serializer(AFPropertyListResponseSerializer)
+    end
+
+    def image!
+      with_response_serializer(AFImageResponseSerializer)
+    end
+  end
+end
+
+class AFHTTPRequestOperation
+  include AFMotion::Operation::Serialization
+end
+
+class AFHTTPRequestOperationManager
+  include AFMotion::Operation::Serialization
 end
