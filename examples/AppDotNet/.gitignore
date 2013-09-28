@@ -11,3 +11,4 @@ nbproject
 *~
 *.sw[po]
 .eprj
+vendor/Pods
