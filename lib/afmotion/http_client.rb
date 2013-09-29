@@ -125,7 +125,8 @@ class AFHTTPRequestOperationManager
   def create_operation(http_method, path, parameters = {}, &callback)
     method_signature = "#{http_method.upcase}:parameters:success:failure:"
     method = self.method(method_signature)
-    operation = method.call(path, parameters, AFMotion::Operation.success_block(callback), AFMotion::Operation.failure_block(callback))
+    success_block = AFMotion::Operation.success_block_for_http_method(http_method, callback)
+    operation = method.call(path, parameters, success_block, AFMotion::Operation.failure_block(callback))
   end
 
   def headers

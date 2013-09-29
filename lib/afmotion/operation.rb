@@ -3,11 +3,18 @@ module AFMotion
     module_function
     def for_request(ns_url_request, &callback)
       operation = AFHTTPRequestOperation.alloc.initWithRequest(ns_url_request)
-      operation.setCompletionBlockWithSuccess(success_block(callback), failure: failure_block(callback))
+      success_block = success_block_for_http_method(ns_url_request.HTTPMethod, callback)
+      operation.setCompletionBlockWithSuccess(success_block, failure: failure_block(callback))
       operation
     end
 
-    def success_block(callback)
+    def success_block_for_http_method(http_method, callback)
+      if http_method.downcase.to_sym == :head
+        return lambda { |operation|
+          AFMotion::HTTPResult.new(operation, nil, nil)
+        }
+      end
+
       lambda { |operation, responseObject|
         result = AFMotion::HTTPResult.new(operation, responseObject, nil)
         callback.call(result)

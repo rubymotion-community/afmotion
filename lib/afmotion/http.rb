@@ -5,7 +5,7 @@ module AFMotion
         base.send(:define_singleton_method, method, -> (url, parameters = {}, &callback) do
           operation_manager.send(method.to_s.upcase, url,
             parameters: parameters,
-            success: AFMotion::Operation.success_block(callback),
+            success: AFMotion::Operation.success_block_for_http_method(method, callback),
             failure: AFMotion::Operation.failure_block(callback))
         end)
       end
