@@ -70,6 +70,52 @@ module AFMotion
   end
 end
 
+# TODO: remove this when/if https://github.com/AFNetworking/AFNetworking/issues/1388 resolved
+module AFMotion
+  module QueryPairHelper
+    module_function
+
+    def af_QueryStringPairsFromDictionary(dictionary)
+      af_QueryStringPairsFromKeyAndValue(nil, dictionary)
+    end
+
+    def af_QueryStringPairsFromKeyAndValue(key, value)
+      mutableQueryStringComponents = []
+      if value.is_a?(NSDictionary)
+        sortDescriptor = NSSortDescriptor.sortDescriptorWithKey("description", ascending: true, selector:'caseInsensitiveCompare:')
+        value.allKeys.sortedArrayUsingDescriptors([sortDescriptor]).each do |nestedKey|
+          nestedValue = value[nestedKey]
+          if nestedValue
+            mutableQueryStringComponents += af_QueryStringPairsFromKeyAndValue(key ? "#{key}[#{nestedKey}]" : nestedKey, nestedValue)
+          end
+        end
+      elsif value.is_a?(NSArray)
+        value.each do |obj|
+          mutableQueryStringComponents += af_QueryStringPairsFromKeyAndValue(key, obj)
+        end
+      elsif value.is_a?(NSSet)
+        value.each do |obj|
+          mutableQueryStringComponents += af_QueryStringPairsFromKeyAndValue(key, obj)
+        end
+      else
+        mutableQueryStringComponents << AFQueryStringPair.alloc.initWithField(key, value: value)
+      end
+
+      mutableQueryStringComponents
+    end
+  end
+
+  class MultipartParametersWrapper < Hash
+    def initialize(parameters)
+      super()
+      query_pairs = QueryPairHelper.af_QueryStringPairsFromDictionary(parameters)
+      query_pairs.each do |key_pair|
+        self[key_pair.field] = key_pair.value
+      end
+    end
+  end
+end
+
 class AFHTTPRequestOperationManager
   AFMotion::HTTP_METHODS.each do |method|
     # EX client.get('my/resource.json')
@@ -83,6 +129,7 @@ class AFHTTPRequestOperationManager
   end
 
   def create_multipart_operation(path, parameters = {}, &callback)
+    parameters = AFMotion::MultipartParametersWrapper.new(parameters)
     inner_callback = Proc.new do |result, form_data,  bytes_written_now,  total_bytes_written, total_bytes_expect|
       case callback.arity
       when 1
@@ -101,14 +148,23 @@ class AFHTTPRequestOperationManager
       end
     end
 
-    multipart_callback = callback.arity == 1 ? nil : lambda { |formData|
-      inner_callback.call(nil, formData)
-    }
-    upload_callback = callback.arity > 2 ? lambda { |bytes_written_now, total_bytes_written, total_bytes_expect|
-      inner_callback.call(nil, nil, bytes_written_now, total_bytes_written, total_bytes_expect)
-    } : nil
+    multipart_callback = nil
+    if callback.arity == 1
+      multipart_callback = lambda { |formData|
+        inner_callback.call(nil, formData)
+      }
+    end
 
-    operation = self.POST(path, parameters: parameters, constructingBodyWithBlock: multipart_callback,
+    upload_callback = nil
+    if callback.arity > 2
+      upload_callback = lambda { |bytes_written_now, total_bytes_written, total_bytes_expect|
+        inner_callback.call(nil, nil, bytes_written_now, total_bytes_written, total_bytes_expect)
+      }
+    end
+
+    operation = self.POST(path,
+      parameters: parameters,
+      constructingBodyWithBlock: multipart_callback,
       success: lambda {|operation, responseObject|
         result = AFMotion::HTTPResult.new(operation, responseObject, nil)
         inner_callback.call(result)
