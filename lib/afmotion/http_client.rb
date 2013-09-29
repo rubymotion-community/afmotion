@@ -31,7 +31,7 @@ module AFMotion
     end
 
     def header(header, value)
-      @operation_manager.requestSerializer.headers[header] = value
+      @operation_manager.headers[header] = value
     end
 
     def authorization(options = {})
@@ -130,6 +130,14 @@ class AFHTTPRequestOperationManager
 
   def headers
     requestSerializer.headers
+  end
+
+  def all_headers
+    requestSerializer.HTTPRequestHeaders
+  end
+
+  def authorization=(authorization)
+    requestSerializer.authorization = authorization
   end
 
   private
