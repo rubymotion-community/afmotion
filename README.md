@@ -73,10 +73,12 @@ Motion::Project::App.setup do |app|
   ...
 
   app.pods do
-    pod 'AFNetworking'
+    pod 'AFNetworking', '~> 1.0'
   end
 end
 ```
+
+If you'd like to use AFNetworking 2.x, you can try the (still in development) AFMotion 2.0 branch: https://github.com/usepropeller/afmotion/tree/afnetworking2
 
 ## Overview
 
