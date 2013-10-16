@@ -12,4 +12,8 @@ Motion::Project::App.setup do |app|
       app.exclude_from_detect_dependencies << file
     end
   end
+
+  app.pods do
+    pod 'AFNetworking', '~> 2.0.0'
+  end
 end
