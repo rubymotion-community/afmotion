@@ -137,6 +137,7 @@ class AFHTTPRequestOperationManager
   def create_multipart_operation(path, parameters = {}, &callback)
     parameters = AFMotion::MultipartParametersWrapper.new(parameters)
     inner_callback = Proc.new do |result, form_data,  bytes_written_now,  total_bytes_written, total_bytes_expect|
+
       case callback.arity
       when 1
         callback.call(result)
@@ -146,16 +147,15 @@ class AFHTTPRequestOperationManager
         progress = nil
         if total_bytes_written && total_bytes_expect
           progress = total_bytes_written.to_f / total_bytes_expect.to_f
-        else
-          callback.call(result, form_data, progress)
         end
+        callback.call(result, form_data, progress)
       when 5
         callback.call(result, form_data, bytes_written_now, total_bytes_written, total_bytes_expect)
       end
     end
 
     multipart_callback = nil
-    if callback.arity == 1
+    if callback.arity == 2
       multipart_callback = lambda { |formData|
         inner_callback.call(nil, formData)
       }
