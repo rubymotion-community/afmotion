@@ -1,47 +1,52 @@
 describe "AFMotion::ClientDSL" do
   before do
-    @client = AFHTTPClient.clientWithBaseURL("http://url".to_url)
+    @client = AFHTTPRequestOperationManager.alloc.initWithBaseURL("http://url".to_url)
     @dsl = AFMotion::ClientDSL.new(@client)
   end
 
   describe "#header" do
     it "should set header" do
       @dsl.header "Accept", "application/json"
-      @client.defaultValueForHeader("Accept").should == "application/json"
+      @client.requestSerializer.HTTPRequestHeaders["Accept"].should == "application/json"
     end
   end
 
   describe "#authorization" do
     it "should set authorization" do
       @dsl.authorization username: "clay", password: "test"
-      @client.defaultValueForHeader("Authorization").nil?.should == false
+      @client.requestSerializer.HTTPRequestHeaders["Authorization"].nil?.should == false
     end
   end
 
-  describe "#operation" do
-    it "should set operation if provided type" do
-      @dsl.operation AFJSONRequestOperation
-      @client.registeredHTTPOperationClassNames.member?("AFJSONRequestOperation").should == true
+  describe "#request_serializer" do
+    it "should set request_serializer if provided type" do
+      @dsl.request_serializer AFJSONRequestSerializer
+      @client.requestSerializer.is_a?(AFJSONRequestSerializer).should == true
     end
 
-    it "should set operation if provided string" do
-      [["json", "AFJSONRequestOperation"], ["xml", "AFXMLRequestOperation"], ["plist", "AFPropertyListRequestOperation"]].each do |op, op_class|
-        @dsl.operation op
-        @client.registeredHTTPOperationClassNames.member?(op_class).should == true
+    it "should set request_serializer if provided string" do
+      [["json", AFJSONRequestSerializer], ["plist", AFPropertyListRequestSerializer]].each do |op, op_class|
+        @dsl.request_serializer op
+        @client.requestSerializer.is_a?(op_class).should == true
       end
     end
   end
 
-  describe "#parameter_encoding" do
-    it "should set encoding if provided type" do
-      @dsl.parameter_encoding AFJSONParameterEncoding
-      @client.parameterEncoding.should == AFJSONParameterEncoding
+  describe "#response_serializer" do
+    it "should set response_serializer if provided type" do
+      @dsl.response_serializer AFJSONResponseSerializer
+      @client.responseSerializer.is_a?(AFJSONResponseSerializer).should == true
     end
 
-    it "should set encoding if provided string" do
-      [["json", AFJSONParameterEncoding], ["form", AFFormURLParameterEncoding], ["plist", AFPropertyListParameterEncoding]].each do |enc, enc_class|
-        @dsl.parameter_encoding enc
-        @client.parameterEncoding.should == enc_class
+    it "should set response_serializer if provided string" do
+      [["json", AFJSONResponseSerializer],
+       ["form", AFHTTPResponseSerializer],
+       ["http", AFHTTPResponseSerializer],
+       ["xml", AFXMLParserResponseSerializer],
+       ["plist", AFPropertyListResponseSerializer],
+       ["image", AFImageResponseSerializer]].each do |enc, enc_class|
+        @dsl.response_serializer enc
+        @client.responseSerializer.is_a?(enc_class).should == true
       end
     end
   end
@@ -49,9 +54,9 @@ end
 
 describe "AFMotion::Client" do
   describe ".build" do
-    it "should return an AFHTTPClient" do
+    it "should return an AFHTTPRequestOperationManager" do
       client = AFMotion::Client.build("http://url")
-      client.is_a?(AFHTTPClient).should == true
+      client.is_a?(AFHTTPRequestOperationManager).should == true
     end
   end
 
@@ -65,7 +70,7 @@ end
 
 describe "AFHTTPClient" do
   before do
-    @client = AFHTTPClient.clientWithBaseURL("http://google.com/".to_url)
+    @client = AFHTTPRequestOperationManager.alloc.initWithBaseURL("http://google.com/".to_url)
   end
 
   describe "URL Helpers" do
@@ -91,21 +96,21 @@ describe "AFHTTPClient" do
   describe "#authorization=" do
     it "should set basic auth" do
       @client.authorization = {username: "clay", password: "pass"}
-      @client.defaultValueForHeader("Authorization").split[0].should == "Basic"
+      @client.requestSerializer.HTTPRequestHeaders["Authorization"].split[0].should == "Basic"
     end
   end
 
   describe "#build_shared" do
     it "should set AFMotion::Client.shared" do
       @client.authorization = {token: "clay"}
-      @client.defaultValueForHeader("Authorization").split[0].should == "Token"
+      @client.requestSerializer.HTTPRequestHeaders["Authorization"].split[0].should == "Token"
     end
   end
 
   describe "#headers" do
     describe "#[]" do
       it "should return a header" do
-        @client.setDefaultHeader("test", value: "test_value")
+        @client.requestSerializer.setValue("test_value", forHTTPHeaderField: "test")
         @client.headers["test"].should == "test_value"
       end
     end
@@ -113,29 +118,24 @@ describe "AFHTTPClient" do
     describe "#[]=" do
       it "should set a header" do
         @client.headers["test"] = "test_set_value"
-        @client.defaultValueForHeader("test").should == "test_set_value"
+        @client.requestSerializer.HTTPRequestHeaders["test"].should == "test_set_value"
       end
     end
 
     describe "#delete" do
       it "should remove a header" do
-        @client.setDefaultHeader("test", value: "test_value")
+        @client.requestSerializer.setValue("test_value", forHTTPHeaderField: "test")
         @client.headers.delete("test").should == "test_value"
-        @client.defaultValueForHeader("test").should == nil
+        @client.requestSerializer.HTTPRequestHeaders["test"].should == nil
       end
     end
   end
 
-  describe "#multipart" do
-    it "should trigger multipart logic" do
-      @client.multipart!.should == @client
-      @client.instance_variable_get("@multipart").should == true
-    end
-
+  describe "#multipart_post" do
     it "should trigger multipart request" do
-      @client.multipart!.post("", test: "Herp") do |result|
+      @client.multipart_post("", test: "Herp") do |result, form_data|
         @result = result
-        resume
+        resume if result
       end
 
       wait_max(10) do
@@ -145,7 +145,7 @@ describe "AFHTTPClient" do
     end
 
     it "should work with form data" do
-      @client.multipart!.post("", test: "Herp") do |result, form_data|
+      @client.multipart_post("", test: "Herp") do |result, form_data|
         if result
           resume
         else
@@ -161,8 +161,8 @@ describe "AFHTTPClient" do
     it "should have upload callback with raw progress" do
       image = UIImage.imageNamed("test")
       @data = UIImagePNGRepresentation(image)
-      @client = AFHTTPClient.clientWithBaseURL("http://bing.com/".to_url)
-      @client.multipart!.post("", test: "Herp") do |result, form_data, progress|
+      @client = AFHTTPRequestOperationManager.alloc.initWithBaseURL("http://bing.com/".to_url)
+      @client.multipart_post("", test: "Herp") do |result, form_data, progress|
         if form_data
           form_data.appendPartWithFileData(@data, name: "test", fileName:"test.png", mimeType: "image/png")
         elsif progress
