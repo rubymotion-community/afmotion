@@ -14,7 +14,7 @@ class AFHTTPRequestSerializer
 
     def delete(header)
       value = self[header]
-      @serializer[header] = nil
+      self[header] = nil
       value
     end
   end
