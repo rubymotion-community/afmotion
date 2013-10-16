@@ -49,6 +49,8 @@ module AFMotion
     def request_serializer(serializer)
       if serializer.is_a?(Symbol) || serializer.is_a?(String)
         @operation_manager.requestSerializer = OPERATION_TO_REQUEST_SERIALIZER[serializer.to_sym].serializer
+      elsif serializer.is_a?(Class)
+        @operation_manager.requestSerializer = serializer.serializer
       else
         @operation_manager.requestSerializer = serializer
       end
@@ -58,11 +60,15 @@ module AFMotion
       json: AFJSONResponseSerializer,
       xml: AFXMLParserResponseSerializer,
       plist: AFPropertyListResponseSerializer,
-      image: AFImageResponseSerializer
+      image: AFImageResponseSerializer,
+      http: AFHTTPResponseSerializer,
+      form: AFHTTPResponseSerializer
     }
     def response_serializer(serializer)
       if serializer.is_a?(Symbol) || serializer.is_a?(String)
         @operation_manager.responseSerializer = OPERATION_TO_RESPONSE_SERIALIZER[serializer.to_sym].serializer
+      elsif serializer.is_a?(Class)
+        @operation_manager.responseSerializer = serializer.serializer
       else
         @operation_manager.responseSerializer = serializer
       end
