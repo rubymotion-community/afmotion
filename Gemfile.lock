@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    afmotion (0.9.0)
+    afmotion (2.0.0)
       motion-cocoapods (~> 1.4.0)
 
 GEM
