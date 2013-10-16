@@ -24,17 +24,6 @@ describe "AFMotion" do
             @result.nil?.should == false
           end
         end
-
-        it "should work with request" do
-          request = NSURLRequest.requestWithURL(NSURL.URLWithString("http://google.com"))
-          _module.get(request) do |result|
-            @result = result
-            resume
-          end
-          wait_max(10) do
-            @result.nil?.should == false
-          end
-        end
       end
     end
   end
