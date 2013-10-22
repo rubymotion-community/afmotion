@@ -18,23 +18,48 @@ end
 
 ### Web Services
 
-If you're interacting with a web service, you can use `AFHTTPClient` with this nice wrapper:
+```ruby
+
+@client = AFMotion::... # create your client
+
+@client.get("stream/0/posts/stream/global") do |result|
+  if result.success?
+    p (result.operation || result.task) # depending on your client
+  elsif result.failure?
+    p result.error.localizedDescription
+  end
+end
+```
+
+You can either use `AFMotion::Client` or `AFMotion::SessionClient` to group similar requests. They have identical APIs, except for their creation and that their request `result` objects contain either `result.operation` (for `::Client`) or `result.task` (for `::SessionClient`).
+
+#### AFMotion::Client
+
+If you're interacting with a web service, you can use [`AFHTTPRequestOperationManager`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Classes/AFHTTPRequestOperationManager.html) with this nice wrapper:
 
 ```ruby
-# DSL Mapping to properties of AFHTTPClient
+# DSL Mapping to properties of AFHTTPRequestOperationManager
 
-AFMotion::Client.build_shared("https://alpha-api.app.net/") do
+@client = AFMotion::Client.build("https://alpha-api.app.net/") do
   header "Accept", "application/json"
 
   response_serializer :json
 end
+```
 
-AFMotion::Client.shared.get("stream/0/posts/stream/global") do |result|
-  if result.success?
-    p result.object
-  elsif result.failure?
-    p result.error.localizedDescription
-  end
+#### AFMotion::SessionClient
+
+If you're using iOS7, you can use [`AFHTTPSessionManager`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Classes/AFHTTPSessionManager.html):
+
+```ruby
+# DSL Mapping to properties of AFHTTPSessionManager
+
+@client = AFMotion::SessionClient.build("https://alpha-api.app.net/") do
+  session_configuration :default
+
+  header "Accept", "application/json"
+
+  response_serializer :json
 end
 ```
 
@@ -118,7 +143,7 @@ end
 
 ### HTTP Client
 
-If you're constantly accesing a web service, it's a good idea to use an `AFHTTPClient`. Things lets you add a common base URL and request headers to all the requests issued through it, like so:
+If you're constantly accesing a web service, it's a good idea to use an `AFHTTPRequestOperationManager`. Things lets you add a common base URL and request headers to all the requests issued through it, like so:
 
 ```ruby
 client = AFMotion::Client.build("https://alpha-api.app.net/") do
@@ -128,13 +153,33 @@ client = AFMotion::Client.build("https://alpha-api.app.net/") do
 end
 
 client.get("stream/0/posts/stream/global") do |result|
+  # result.operation exists
+  ...
+end
+```
+
+If you're using iOS7, you can use [`AFHTTPSessionManager`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Classes/AFHTTPSessionManager.html):
+
+```ruby
+# DSL Mapping to properties of AFHTTPSessionManager
+
+client = AFMotion::SessionClient.build("https://alpha-api.app.net/") do
+  session_configuration :default
+
+  header "Accept", "application/json"
+
+  response_serializer :json
+end
+
+client.get("stream/0/posts/stream/global") do |result|
+  # result.task exists
   ...
 end
 ```
 
 If you're constantly used one web service, you can use the `AFMotion::Client.shared` variable have a common reference. It can be set like a normal variable or created with `AFMotion::Client.build_shared`.
 
-`AFHTTPClient` supports methods of the form `AFHTTPClient#get/post/put/patch/delete(url, request_parameters)`. The `request_parameters` is a hash containing your parameters to attach as the request body or URL parameters, depending on request type. For example:
+`AFHTTPRequestOperationManager` & `AFHTTPSessionManager` support methods of the form `Client#get/post/put/patch/delete(url, request_parameters)`. The `request_parameters` is a hash containing your parameters to attach as the request body or URL parameters, depending on request type. For example:
 
 ```ruby
 client.get("users", id: 1) do |result|
@@ -148,7 +193,7 @@ end
 
 #### Multipart Requests
 
-`AFHTTPClient` supports multipart form requests (i.e. for image uploading) - simply use `multipart_post` and it'll convert your parameters into properly encoded multipart data. For all other types of request data, use the `form_data` object passed to your callback:
+`AFHTTPRequestOperationManager` & `AFHTTPSessionManager` support multipart form requests (i.e. for image uploading) - simply use `multipart_post` and it'll convert your parameters into properly encoded multipart data. For all other types of request data, use the `form_data` object passed to your callback:
 
 ```ruby
 # an instance of UIImage
@@ -201,26 +246,15 @@ client.headers.delete "Accept"
 #=> "application/something_else"
 ```
 
-#### Client Operations
-
-If you want to grab an `AFURLConnectionOperation` from your client instance, use `create_operation` or `create_multipart_operation`:
-
-```ruby
-operation = client.create_operation(:get, "http://google.com", {q: "hello"}) do |result|
-end
-
-multipart_operation = client.create_multipart_operation(:get, "http://google.com", {q: "hello"}) do |result, form_data, progress|
-end
-
-# elsewhere
-client.enqueueHTTPRequestOperation(operation)
-```
-
 #### Client Building DSL
 
-The `AFMotion::Client` DSL allows the following properties:
+The `AFMotion::Client` & `AFMotion::SessionClient` DSLs allows the following properties:
 
 - `header(header, value)`
 - `authorization(username: ___, password: ____)` for HTTP Basic auth, or `authorization(token: ____)` for Token based auth.
 - `request_serializer(serializer)`. Allows you to set an [`AFURLRequestSerialization`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Protocols/AFURLRequestSerialization.html) for all your client's requests, which determines how data is encoded on the way to the server. So if your API is always going to be JSON, you should set `operation(:json)`. Accepts `:json` and `:plist`, or any instance of `AFURLRequestSerialization`.
 - `response_serializer(serializer)`. Allows you to set an [`AFURLResponseSerialization`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Protocols/AFURLResponseSerialization.html), which determines how data is decoded once the server respnds. Accepts `:json`, `:xml`, `:plist`, `:image`, `:http`, or any instance of `AFURLResponseSerialization`.
+
+For `AFMotion::SessionClient` only:
+
+- `session_configuration(session_configuration, identifier = nil)`. Allows you to set the [`NSURLSessionConfiguration`](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSessionConfiguration_class/Reference/Reference.html#//apple_ref/occ/cl/NSURLSessionConfiguration). Accepts `:default`, `:ephemeral`, `:background` (with the `identifier` as a String), or an instance of `NSURLSessionConfiguration`.
