@@ -213,7 +213,7 @@ client.multipart_post("avatars") do |result, form_data|
 end
 ```
 
-This is an instance of `AFMultipartFormData` - for more info, see the [AFNetworking docs][http://cocoadocs.org/docsets/AFNetworking/2.0.0/Protocols/AFMultipartFormData.html].
+This is an instance of `AFMultipartFormData` - for more info, see the [AFNetworking docs](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Protocols/AFMultipartFormData.html).
 
 If you want to track upload progress, you can add a third callback argument which returns the upload percentage between 0.0 and 1.0:
 
