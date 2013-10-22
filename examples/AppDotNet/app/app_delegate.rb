@@ -2,10 +2,10 @@ class AppDelegate
   attr_accessor :navigationController, :window
   def application(application, didFinishLaunchingWithOptions:launchOptions)
 
-    AFMotion::Client.build_shared("https://alpha-api.app.net/") do
+    AFMotion::Client.build_shared("https://alpha-api.app.net") do
       header "Accept", "application/json"
 
-      operation :json
+      request_serializer :json
     end
 
     url_cache = NSURLCache.alloc.initWithMemoryCapacity(4 * 1024 * 1024, diskCapacity:20 * 1024 * 1024,diskPath:nil)

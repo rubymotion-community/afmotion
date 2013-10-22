@@ -1,92 +1,52 @@
+motion_require 'version'
+
 module AFMotion
-  module HTTPBuilder
-    def self.included(base)
-      AFMotion::HTTP_METHODS.each do |method|
-        base.send(:define_singleton_method, method, -> (request_or_url, parameters = {}, &callback) do
-          request = request_or_url
-          if !request.is_a?(NSURLRequest)
-            request = NSMutableURLRequest.requestWithURL(request_or_url.to_url)
-            request.HTTPMethod = method.upcase
-            if [:get, :head].member? method.downcase.to_sym
-              request.HTTPShouldUsePipelining = true
-            end
-            # SEE NSURLRequest_params.rb
-            request.parameters = parameters.merge(__encoding__: self.parameter_encoding)
-          end
-
-          operation = (self.request_module.for_request(request) do |result|
-            callback.call(result)
-          end)
-
-          operation.start
-          operation
-        end)
+  class HTTP
+    def self.operation_manager
+      @operation_manager ||= begin
+        manager = AFHTTPRequestOperationManager.manager
+        configure_manager(manager)
+        manager
       end
     end
-  end
 
-  module HTTP
-    include AFMotion::HTTPBuilder
-
-    module_function
-    def request_module
-      AFMotion::Operation::HTTP
-    end
-
-    def parameter_encoding
-      AFFormURLParameterEncoding
+    def self.configure_manager(manager)
     end
   end
 
-  module JSON
-    include AFMotion::HTTPBuilder
-
-    module_function
-    def request_module
-      AFMotion::Operation::JSON
-    end
-
-    def parameter_encoding
-      AFJSONParameterEncoding
+  class JSON < HTTP
+    def self.configure_manager(manager)
+      manager.json!
     end
   end
 
-  module XML
-    include AFMotion::HTTPBuilder
-
-    module_function
-    def request_module
-      AFMotion::Operation::XML
-    end
-
-    def parameter_encoding
-      AFFormURLParameterEncoding
+  class XML < HTTP
+    def self.configure_manager(manager)
+      manager.xml!
     end
   end
 
-  module PLIST
-    include AFMotion::HTTPBuilder
-
-    module_function
-    def request_module
-      AFMotion::Operation::PLIST
-    end
-
-    def parameter_encoding
-      AFPropertyListParameterEncoding
+  class PLIST < HTTP
+    def self.configure_manager(manager)
+      manager.plist!
     end
   end
 
-  module Image
-    include AFMotion::HTTPBuilder
-
-    module_function
-    def request_module
-      AFMotion::Operation::Image
+  class Image < HTTP
+    def self.configure_manager(operation)
+      operation.image!
     end
+  end
 
-    def parameter_encoding
-      AFFormURLParameterEncoding
+  [HTTP, JSON, XML, PLIST, Image].each do |base|
+    AFMotion::HTTP_METHODS.each do |method_name|
+      method_signature = "#{method_name.to_s.upcase}:parameters:success:failure:"
+      base.define_singleton_method(method_name, -> (url, parameters = {}, &callback) do
+        base.operation_manager.send(method_signature, url,
+          parameters,
+          AFMotion::Operation.success_block_for_http_method(method_name, callback),
+          AFMotion::Operation.failure_block(callback))
+      end)
     end
   end
 end

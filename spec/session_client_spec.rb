@@ -1,33 +1,32 @@
-describe "AFMotion::ClientDSL" do
+describe "AFMotion::SessionClientDSL" do
   before do
-    @client = AFHTTPRequestOperationManager.alloc.initWithBaseURL("http://url".to_url)
-    @dsl = AFMotion::ClientDSL.new(@client)
+    @dsl = AFMotion::SessionClientDSL.new("http://url")
   end
 
   describe "#header" do
     it "should set header" do
       @dsl.header "Accept", "application/json"
-      @client.requestSerializer.HTTPRequestHeaders["Accept"].should == "application/json"
+      @dsl.to_session_manager.requestSerializer.HTTPRequestHeaders["Accept"].should == "application/json"
     end
   end
 
   describe "#authorization" do
     it "should set authorization" do
       @dsl.authorization username: "clay", password: "test"
-      @client.requestSerializer.HTTPRequestHeaders["Authorization"].nil?.should == false
+      @dsl.to_session_manager.requestSerializer.HTTPRequestHeaders["Authorization"].nil?.should == false
     end
   end
 
   describe "#request_serializer" do
     it "should set request_serializer if provided type" do
       @dsl.request_serializer AFJSONRequestSerializer
-      @client.requestSerializer.is_a?(AFJSONRequestSerializer).should == true
+      @dsl.to_session_manager.requestSerializer.is_a?(AFJSONRequestSerializer).should == true
     end
 
     it "should set request_serializer if provided string" do
       [["json", AFJSONRequestSerializer], ["plist", AFPropertyListRequestSerializer]].each do |op, op_class|
         @dsl.request_serializer op
-        @client.requestSerializer.is_a?(op_class).should == true
+        @dsl.to_session_manager.requestSerializer.is_a?(op_class).should == true
       end
     end
   end
@@ -35,7 +34,7 @@ describe "AFMotion::ClientDSL" do
   describe "#response_serializer" do
     it "should set response_serializer if provided type" do
       @dsl.response_serializer AFJSONResponseSerializer
-      @client.responseSerializer.is_a?(AFJSONResponseSerializer).should == true
+      @dsl.to_session_manager.responseSerializer.is_a?(AFJSONResponseSerializer).should == true
     end
 
     it "should set response_serializer if provided string" do
@@ -46,31 +45,68 @@ describe "AFMotion::ClientDSL" do
        ["plist", AFPropertyListResponseSerializer],
        ["image", AFImageResponseSerializer]].each do |enc, enc_class|
         @dsl.response_serializer enc
-        @client.responseSerializer.is_a?(enc_class).should == true
+        @dsl.to_session_manager.responseSerializer.is_a?(enc_class).should == true
+      end
+    end
+  end
+
+  describe "#session_configuration" do
+    describe "for default" do
+      it "should work" do
+        @dsl.session_configuration :default
+        @dsl.to_session_manager.sessionConfiguration.URLCache.diskCapacity.should > 0
+      end
+    end
+
+    describe "for ephemeral" do
+      it "should work" do
+        @dsl.session_configuration :ephemeral
+        @dsl.to_session_manager.sessionConfiguration.URLCache.diskCapacity.should == 0
+      end
+    end
+
+    describe "for background" do
+      it "should work" do
+        @dsl.session_configuration :background, "com.usepropeller.afmotion.test"
+        manager = @dsl.to_session_manager
+        manager.sessionConfiguration.sessionSendsLaunchEvents.should == true
+        manager.sessionConfiguration.identifier.should == "com.usepropeller.afmotion.test"
+      end
+    end
+
+    describe "for instances" do
+      it "should work" do
+        session_config = NSURLSessionConfiguration.defaultSessionConfiguration
+        session_config.identifier = "test"
+        @dsl.session_configuration session_config
+        @dsl.to_session_manager.sessionConfiguration.should == session_config
       end
     end
   end
 end
 
-describe "AFMotion::Client" do
+describe "AFMotion::SessionClient" do
   describe ".build" do
-    it "should return an AFHTTPRequestOperationManager" do
-      client = AFMotion::Client.build("http://url")
-      client.is_a?(AFHTTPRequestOperationManager).should == true
+    it "should return an AFHTTPSessionManager" do
+      client = AFMotion::SessionClient.build("http://url") do
+      end
+      client.is_a?(AFHTTPSessionManager).should == true
     end
   end
 
   describe ".build_shared" do
-    it "should set AFMotion::Client.shared" do
-      client = AFMotion::Client.build_shared("http://url")
-      AFMotion::Client.shared.should == client
+    it "should set AFMotion::SessionClient.shared" do
+      client = AFMotion::SessionClient.build_shared("http://url") do
+      end
+      AFMotion::SessionClient.shared.should == client
     end
   end
 end
 
-describe "AFHTTPClient" do
+describe "AFHTTPSessionManager" do
   before do
-    @client = AFHTTPRequestOperationManager.alloc.initWithBaseURL("http://google.com/".to_url)
+    @client = AFHTTPSessionManager.alloc.initWithBaseURL("http://google.com/".to_url,
+      sessionConfiguration: NSURLSessionConfiguration.defaultSessionConfiguration)
   end
 
   describe "URL Helpers" do
@@ -140,7 +176,7 @@ describe "AFHTTPClient" do
 
       wait_max(10) do
         @result.should.not == nil
-        @result.operation.request.valueForHTTPHeaderField("Content-Type").include?("multipart/form-data").should == true
+        @result.task.currentRequest.valueForHTTPHeaderField("Content-Type").include?("multipart/form-data").should == true
       end
     end
 

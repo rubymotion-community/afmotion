@@ -1,74 +1,25 @@
-module AFMotion
-  class ClientDSL
-    def initialize(client)
-      @client = client
-    end
-
-    def header(header, value)
-      @client.setDefaultHeader(header, value: value)
-    end
-
-    def authorization(options = {})
-      @client.authorization = options
-    end
-
-    def operation(operation)
-      klass = operation
-      if operation.is_a?(Symbol) or operation.is_a?(String)
-        klass = case operation.to_s
-                when "json"
-                  AFJSONRequestOperation
-                when "plist"
-                  AFPropertyListRequestOperation
-                when "xml"
-                  AFXMLRequestOperation
-                when "http"
-                  AFHTTPRequestOperation
-                else
-                  raise "Not a valid operation: #{operation.inspect}"
-                end
-      end
-
-      @client.registerHTTPOperationClass(klass)
-    end
-
-    def parameter_encoding(encoding)
-      enc = encoding
-      if encoding.is_a?(Symbol) or encoding.is_a?(String)
-        enc = case encoding.to_s
-              when "json"
-                AFJSONParameterEncoding
-              when "plist"
-                AFPropertyListParameterEncoding
-              when "form"
-                AFFormURLParameterEncoding
-              else
-                p "Not a valid parameter encoding: #{encoding.inspect}; using AFFormURLParameterEncoding"
-                AFFormURLParameterEncoding
-              end
-      end
-      @client.parameterEncoding = enc
-    end
-  end
-end
+motion_require 'version'
+motion_require 'client_shared'
 
 module AFMotion
   class Client
     class << self
       attr_accessor :shared
 
-      # Returns an instance of AFHTTPClient
+      # Returns an instance of AFHTTPRequestOperationManager
       def build(base_url, &block)
-        client = AFHTTPClient.clientWithBaseURL(base_url.to_url)
+        operation_manager = AFHTTPRequestOperationManager.alloc.initWithBaseURL(base_url.to_url)
         if block
-          dsl = AFMotion::ClientDSL.new(client)
+          dsl = AFMotion::ClientDSL.new(operation_manager)
           dsl.instance_eval(&block)
         end
-        client
+        if !operation_manager.operationQueue
+          operation_manager.operationQueue = NSOperationQueue.mainQueue
+        end
+        operation_manager
       end
 
       # Sets AFMotion::Client.shared as the built client
-      # TODO: Make sure this only happens once (dispatch_once not available)
       def build_shared(base_url, &block)
         self.shared = self.build(base_url, &block)
       end
@@ -76,135 +27,111 @@ module AFMotion
   end
 end
 
-class AFHTTPClient
+module AFMotion
+  class ClientDSL
+    def initialize(operation_manager)
+      @operation_manager = WeakRef.new(operation_manager)
+    end
+
+    def header(header, value)
+      @operation_manager.headers[header] = value
+    end
+
+    def authorization(options = {})
+      @operation_manager.requestSerializer.authorization = options
+    end
+
+    def operation_queue(operation_queue)
+      @operation_manager.operationQueue = operation_queue
+    end
+
+    OPERATION_TO_REQUEST_SERIALIZER = {
+      json: AFJSONRequestSerializer,
+      plist: AFPropertyListRequestSerializer
+    }
+    def request_serializer(serializer)
+      if serializer.is_a?(Symbol) || serializer.is_a?(String)
+        @operation_manager.requestSerializer = OPERATION_TO_REQUEST_SERIALIZER[serializer.to_sym].serializer
+      elsif serializer.is_a?(Class)
+        @operation_manager.requestSerializer = serializer.serializer
+      else
+        @operation_manager.requestSerializer = serializer
+      end
+    end
+
+    OPERATION_TO_RESPONSE_SERIALIZER = {
+      json: AFJSONResponseSerializer,
+      xml: AFXMLParserResponseSerializer,
+      plist: AFPropertyListResponseSerializer,
+      image: AFImageResponseSerializer,
+      http: AFHTTPResponseSerializer,
+      form: AFHTTPResponseSerializer
+    }
+    def response_serializer(serializer)
+      if serializer.is_a?(Symbol) || serializer.is_a?(String)
+        @operation_manager.responseSerializer = OPERATION_TO_RESPONSE_SERIALIZER[serializer.to_sym].serializer
+      elsif serializer.is_a?(Class)
+        @operation_manager.responseSerializer = serializer.serializer
+      else
+        @operation_manager.responseSerializer = serializer
+      end
+    end
+  end
+end
+
+# TODO: remove this when/if https://github.com/AFNetworking/AFNetworking/issues/1388 resolved
+module AFMotion
+  module QueryPairHelper
+    module_function
+
+    def af_QueryStringPairsFromDictionary(dictionary)
+      af_QueryStringPairsFromKeyAndValue(nil, dictionary)
+    end
+
+    def af_QueryStringPairsFromKeyAndValue(key, value)
+      mutableQueryStringComponents = []
+      if value.is_a?(NSDictionary)
+        sortDescriptor = NSSortDescriptor.sortDescriptorWithKey("description", ascending: true, selector:'caseInsensitiveCompare:')
+        value.allKeys.sortedArrayUsingDescriptors([sortDescriptor]).each do |nestedKey|
+          nestedValue = value[nestedKey]
+          if nestedValue
+            mutableQueryStringComponents += af_QueryStringPairsFromKeyAndValue(key ? "#{key}[#{nestedKey}]" : nestedKey, nestedValue)
+          end
+        end
+      elsif value.is_a?(NSArray)
+        value.each do |obj|
+          mutableQueryStringComponents += af_QueryStringPairsFromKeyAndValue(key, obj)
+        end
+      elsif value.is_a?(NSSet)
+        value.each do |obj|
+          mutableQueryStringComponents += af_QueryStringPairsFromKeyAndValue(key, obj)
+        end
+      else
+        mutableQueryStringComponents << AFQueryStringPair.alloc.initWithField(key, value: value)
+      end
+
+      mutableQueryStringComponents
+    end
+  end
+
+  class MultipartParametersWrapper < Hash
+    def initialize(parameters)
+      super()
+      query_pairs = QueryPairHelper.af_QueryStringPairsFromDictionary(parameters)
+      query_pairs.each do |key_pair|
+        self[key_pair.field] = key_pair.value
+      end
+    end
+  end
+end
+
+class AFHTTPRequestOperationManager
+  include AFMotion::ClientShared
+
   AFMotion::HTTP_METHODS.each do |method|
     # EX client.get('my/resource.json')
     define_method "#{method}", -> (path, parameters = {}, &callback) do
-      if multipart?
-        @operation = create_multipart_operation(method, path, parameters, &callback)
-        self.enqueueHTTPRequestOperation(@operation)
-        @multipart = nil
-      else
-        @operation = create_operation(method, path, parameters, &callback)
-        self.enqueueHTTPRequestOperation(@operation)
-      end
-      @operation
+      create_operation(method, path, parameters, &callback)
     end
-  end
-
-  def create_multipart_operation(method, path, parameters = {}, &callback)
-    multipart_callback = callback.arity == 1 ? nil : lambda { |formData|
-      callback.call(nil, formData)
-    }
-    upload_callback = callback.arity > 2 ? lambda { |bytes_written_now, total_bytes_written, total_bytes_expect|
-      case callback.arity
-      when 3
-        callback.call(nil, nil, total_bytes_written.to_f / total_bytes_expect.to_f)
-      when 5
-        callback.call(nil, nil, bytes_written_now, total_bytes_written, total_bytes_expect)
-      end
-    } : nil
-    request = self.multipartFormRequestWithMethod(method, path: path,
-      parameters: parameters,constructingBodyWithBlock: multipart_callback)
-    operation = self.HTTPRequestOperationWithRequest(request,
-      success: lambda {|operation, responseObject|
-        result = AFMotion::HTTPResult.new(operation, responseObject, nil)
-        case callback.arity
-        when 1
-          callback.call(result)
-        when 2
-          callback.call(result, nil)
-        when 3
-          callback.call(result, nil, nil)
-        when 5
-          callback.call(result, nil, nil, nil, nil)
-        end
-      }, failure: lambda {|operation, error|
-        result = AFMotion::HTTPResult.new(operation, nil, error)
-        case callback.arity
-        when 1
-          callback.call(result)
-        when 2
-          callback.call(result, nil)
-        when 3
-          callback.call(result, nil, nil)
-        when 5
-          callback.call(result, nil, nil, nil, nil)
-        end
-      })
-    if upload_callback
-      operation.setUploadProgressBlock(upload_callback)
-    end
-    operation
-  end
-
-  def create_operation(method, path, parameters = {}, &callback)
-    request = self.requestWithMethod(method.upcase, path:path, parameters:parameters)
-    self.HTTPRequestOperationWithRequest(request, success: lambda {|operation, responseObject|
-            result = AFMotion::HTTPResult.new(operation, responseObject, nil)
-            callback.call(result)
-          }, failure: lambda {|operation, error|
-            result = AFMotion::HTTPResult.new(operation, nil, error)
-            callback.call(result)
-          })
-  end
-
-  def multipart!
-    @multipart = true
-    self
-  end
-
-  def multipart?
-    !!@multipart
-  end
-
-  # options can be
-  # - {username: ___, password: ____}
-  # or
-  # - {token: ___ }
-  def authorization=(options = {})
-    if options.nil?
-      clearAuthorizationHeader
-    elsif options[:username] && options[:password]
-      setAuthorizationHeaderWithUsername(options[:username], password: options[:password])
-    elsif options[:token]
-      setAuthorizationHeaderWithToken(options[:token])
-    else
-      raise "Not a valid authorization hash: #{options.inspect}"
-    end
-  end
-
-  class HeaderWrapper
-    def initialize(client)
-      @client = WeakRef.new(client)
-    end
-
-    def [](header)
-      @client.defaultValueForHeader(header)
-    end
-
-    def []=(header, value)
-      @client.setDefaultHeader(header, value: value)
-    end
-
-    def delete(header)
-      value = self[header]
-      @client.setDefaultHeader(header, value: nil)
-      value
-    end
-  end
-
-  def headers
-    @header_wrapper ||= HeaderWrapper.new(self)
-  end
-
-  private
-  # To force RubyMotion pre-compilation of these methods
-  def dummy
-    self.getPath("", parameters: nil, success: nil, failure: nil)
-    self.postPath("", parameters: nil, success: nil, failure: nil)
-    self.putPath("", parameters: nil, success: nil, failure: nil)
-    self.deletePath("", parameters: nil, success: nil, failure: nil)
-    self.patchPath("", parameters: nil, success: nil, failure: nil)
   end
 end

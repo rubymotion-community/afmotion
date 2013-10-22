@@ -26,7 +26,7 @@ If you're interacting with a web service, you can use `AFHTTPClient` with this n
 AFMotion::Client.build_shared("https://alpha-api.app.net/") do
   header "Accept", "application/json"
 
-  operation :json
+  response_serializer :json
 end
 
 AFMotion::Client.shared.get("stream/0/posts/stream/global") do |result|
@@ -66,20 +66,6 @@ You can also request arbitrary images:
 
 2. `require 'afmotion'` or add to your `Gemfile`
 
-3. In your `Rakefile`, add:
-
-```ruby
-Motion::Project::App.setup do |app|
-  ...
-
-  app.pods do
-    pod 'AFNetworking', '~> 1.0'
-  end
-end
-```
-
-If you'd like to use AFNetworking 2.x, you can try the (still in development) AFMotion 2.0 branch: https://github.com/usepropeller/afmotion/tree/afnetworking2
-
 ## Overview
 
 ### Results
@@ -105,22 +91,6 @@ AFMotion::some_function do |result|
   end
 end
 ```
-
-### Operations
-
-There are wrappers for each `AFURLConnectionOperation` subclass, each of the form:
-
-```ruby
-AFMotion::Operation::[Operation Type].for_request(ns_url_request) do |result|
-  ...
-end
-```
-
-- `AFMotion::Operation::HTTP.for_request...`
-- `AFMotion::Operation::JSON.for_request...`
-- `AFMotion::Operation::XML.for_request...`
-- `AFMotion::Operation::PLIST.for_request...`
-- `AFMotion::Operation::Image.for_request...`
 
 ### One-off Requests
 
@@ -154,7 +124,7 @@ If you're constantly accesing a web service, it's a good idea to use an `AFHTTPC
 client = AFMotion::Client.build("https://alpha-api.app.net/") do
   header "Accept", "application/json"
 
-  operation :json
+  response_serializer :json
 end
 
 client.get("stream/0/posts/stream/global") do |result|
@@ -178,14 +148,14 @@ end
 
 #### Multipart Requests
 
-`AFHTTPClient` supports multipart form requests (i.e. for image uploading). Simply prepend `multipart!` to any other request method and it'll convert your parameters into properly encoded multipart data:
+`AFHTTPClient` supports multipart form requests (i.e. for image uploading) - simply use `multipart_post` and it'll convert your parameters into properly encoded multipart data. For all other types of request data, use the `form_data` object passed to your callback:
 
 ```ruby
 # an instance of UIImage
 image = my_function.get_image
 data = UIImagePNGRepresentation(image)
 
-client.multipart!.post("avatars") do |result, form_data|
+client.multipart_post("avatars") do |result, form_data|
   if form_data
     # Called before request runs
     # see: https://github.com/AFNetworking/AFNetworking/wiki/AFNetworking-FAQ
@@ -198,17 +168,20 @@ client.multipart!.post("avatars") do |result, form_data|
 end
 ```
 
+This is an instance of `AFMultipartFormData` - for more info, see the [AFNetworking docs][http://cocoadocs.org/docsets/AFNetworking/2.0.0/Protocols/AFMultipartFormData.html].
+
 If you want to track upload progress, you can add a third callback argument which returns the upload percentage between 0.0 and 1.0:
 
 ```ruby
-client.multipart!.post("avatars") do |result, form_data, progress|
+client.multipart_post("avatars") do |result, form_data, progress|
   if form_data
     # Called before request runs
     # see: https://github.com/AFNetworking/AFNetworking/wiki/AFNetworking-FAQ
     form_data.appendPartWithFileData(data, name: "avatar", fileName:"avatar.png", mimeType: "image/png")
   elsif progress
-    # 0.0 <= progress <= 1.0
+    # 0.0 < progress < 1.0
     my_widget.update_progress(progress)
+  else
   ...
 end
 ```
@@ -249,5 +222,5 @@ The `AFMotion::Client` DSL allows the following properties:
 
 - `header(header, value)`
 - `authorization(username: ___, password: ____)` for HTTP Basic auth, or `authorization(token: ____)` for Token based auth.
-- `operation(operation_type)`. Allows you to set a common operation class for all your client's requests. So if your API is always going to be JSON, you should set `operation(:json)`. Accepts `:json`, `:plist`, `:xml`, or `:http`
-- `parameter_encoding(encoding)`. Allows you to set a body format for requests parameters. For example, when you send a POST request you might want the parameters to be encoding as a JSON object instead of the traditional `key=val` format. Accepts `:json`, `:plist`, and `:form` (normal encoding).
+- `request_serializer(serializer)`. Allows you to set an [`AFURLRequestSerialization`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Protocols/AFURLRequestSerialization.html) for all your client's requests, which determines how data is encoded on the way to the server. So if your API is always going to be JSON, you should set `operation(:json)`. Accepts `:json` and `:plist`, or any instance of `AFURLRequestSerialization`.
+- `response_serializer(serializer)`. Allows you to set an [`AFURLResponseSerialization`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Protocols/AFURLResponseSerialization.html), which determines how data is decoded once the server respnds. Accepts `:json`, `:xml`, `:plist`, `:image`, `:http`, or any instance of `AFURLResponseSerialization`.
