@@ -57,7 +57,7 @@ module AFMotion
           result = AFMotion::HTTPResult.new(operation, responseObject, nil)
           inner_callback.call(result)
         }, failure: lambda {|operation, error|
-          result = AFMotion::HTTPResult.new(operation, nil, error)
+          result = AFMotion::HTTPResult.new(operation, operation.responseObject, error)
           inner_callback.call(result)
         })
       if upload_callback

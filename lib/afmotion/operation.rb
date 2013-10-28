@@ -23,7 +23,7 @@ module AFMotion
 
     def failure_block(callback)
       lambda { |operation, error|
-        result = AFMotion::HTTPResult.new(operation, nil, error)
+        result = AFMotion::HTTPResult.new(operation, operation.responseObject, error)
         callback.call(result)
       }
     end
