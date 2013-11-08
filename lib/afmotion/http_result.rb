@@ -3,7 +3,7 @@ module AFMotion
     attr_accessor :operation, :object, :error, :task
 
     def initialize(operation_or_task, responseObject, error)
-      if operation_or_task.is_a?(NSURLSessionTask) ||
+      if defined?(NSURLSessionTask) && operation_or_task.is_a?(NSURLSessionTask) ||
         # cluser class ugh
         operation_or_task.class.to_s.include?("Task")
         self.task = operation_or_task
