@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    afmotion (2.0.0.rc1)
+    afmotion (2.0.0.rc2)
       motion-cocoapods (~> 1.4.0)
       motion-require (~> 0.0.7)
 
@@ -30,7 +30,7 @@ GEM
     colored (1.2)
     escape (0.0.4)
     i18n (0.6.5)
-    json (1.8.0)
+    json (1.8.1)
     motion-cocoapods (1.4.0)
       cocoapods (>= 0.26.2)
     motion-require (0.0.7)
