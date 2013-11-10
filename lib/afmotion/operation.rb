@@ -10,20 +10,21 @@ module AFMotion
 
     def success_block_for_http_method(http_method, callback)
       if http_method.downcase.to_sym == :head
-        return lambda { |operation|
-          AFMotion::HTTPResult.new(operation, nil, nil)
+        return lambda { |operation_or_task|
+          AFMotion::HTTPResult.new(operation_or_task, nil, nil)
         }
       end
 
-      lambda { |operation, responseObject|
-        result = AFMotion::HTTPResult.new(operation, responseObject, nil)
+      lambda { |operation_or_task, responseObject|
+        result = AFMotion::HTTPResult.new(operation_or_task, responseObject, nil)
         callback.call(result)
       }
     end
 
     def failure_block(callback)
-      lambda { |operation, error|
-        result = AFMotion::HTTPResult.new(operation, operation.responseObject, error)
+      lambda { |operation_or_task, error|
+        response_object = operation_or_task.is_a?(AFHTTPRequestOperation) ? operation_or_task.responseObject : nil
+        result = AFMotion::HTTPResult.new(operation_or_task, response_object, error)
         callback.call(result)
       }
     end
