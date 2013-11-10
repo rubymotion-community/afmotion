@@ -21,7 +21,7 @@ PODS:
     - AFNetworking/NSURLConnection
 
 DEPENDENCIES:
-  - AFNetworking (~> 2.0.0)
+  - AFNetworking (~> 2.0.1)
 
 SPEC CHECKSUMS:
   AFNetworking: a6f11ac4ac087303e6ff87adc1ba57b0dac20ef8

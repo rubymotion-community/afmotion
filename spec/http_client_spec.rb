@@ -131,50 +131,55 @@ describe "AFHTTPClient" do
     end
   end
 
-  describe "#multipart_post" do
-    it "should trigger multipart request" do
-      @client.multipart_post("", test: "Herp") do |result, form_data|
-        @result = result
-        resume if result
-      end
+  ["multipart_post", "multipart_put"].each do |multipart_method|
+    describe "##{multipart_method}" do
+      it "should trigger multipart request" do
+        @client.send(multipart_method, "", test: "Herp") do |result, form_data|
+          @result = result
+          resume if result
+        end
 
-      wait_max(10) do
-        @result.should.not == nil
-        @result.operation.request.valueForHTTPHeaderField("Content-Type").include?("multipart/form-data").should == true
-      end
-    end
-
-    it "should work with form data" do
-      @client.multipart_post("", test: "Herp") do |result, form_data|
-        if result
-          resume
-        else
-          @form_data = form_data
+        wait_max(10) do
+          @result.should.not == nil
+          @result.operation.request.valueForHTTPHeaderField("Content-Type").include?("multipart/form-data").should == true
         end
       end
 
-      wait_max(10) do
-        @form_data.should.not == nil
-      end
-    end
+      it "should work with form data" do
+        @client.send(multipart_method, "", test: "Herp") do |result, form_data|
+          if result
+            resume
+          else
+            @form_data = form_data
+          end
+        end
 
-    it "should have upload callback with raw progress" do
-      image = UIImage.imageNamed("test")
-      @data = UIImagePNGRepresentation(image)
-      @client = AFHTTPRequestOperationManager.alloc.initWithBaseURL("http://bing.com/".to_url)
-      @client.multipart_post("", test: "Herp") do |result, form_data, progress|
-        if form_data
-          form_data.appendPartWithFileData(@data, name: "test", fileName:"test.png", mimeType: "image/png")
-        elsif progress
-          @progress ||= progress
-        elsif result
-          resume
+        wait_max(10) do
+          @form_data.should.not == nil
         end
       end
 
-      wait_max(20) do
-        @progress.should <= 1.0
-        @progress.should.not == nil
+      it "should have upload callback with raw progress" do
+        image = UIImage.imageNamed("test")
+        @data = UIImagePNGRepresentation(image)
+        @file_added = false
+        @client = AFHTTPRequestOperationManager.alloc.initWithBaseURL("http://bing.com/".to_url)
+        @client.send(multipart_method, "", test: "Herp") do |result, form_data, progress|
+          if form_data
+            @file_added = true
+            form_data.appendPartWithFileData(@data, name: "test", fileName:"test.png", mimeType: "image/png")
+          elsif progress
+            @progress ||= progress
+          elsif result
+            resume
+          end
+        end
+
+        wait_max(20) do
+          @file_added.should == true
+          @progress.should <= 1.0
+          @progress.should.not == nil
+        end
       end
     end
   end

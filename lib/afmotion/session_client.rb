@@ -125,4 +125,26 @@ class AFHTTPSessionManager
       create_task(method, path, parameters, &callback)
     end
   end
+
+  # options = {parameters: , constructingBodyWithBlock: , success:, failure:}
+  def PUT(url_string, options = {})
+    parameters = options[:parameters]
+    block = options[:constructingBodyWithBlock]
+    success = options[:success]
+    failure = options[:failure]
+
+    request = self.requestSerializer.multipartFormRequestWithMethod("PUT", URLString: NSURL.URLWithString(url_string, relativeToURL: self.baseURL).absoluteString, parameters:parameters, constructingBodyWithBlock:block)
+
+    task = self.dataTaskWithRequest(request, completionHandler: ->(response, responseObject, error) {
+      if error && failure
+        failure.call(task, error)
+      elsif success
+        success.call(task, responseObject)
+      end
+    })
+
+    task.resume
+
+    task
+  end
 end

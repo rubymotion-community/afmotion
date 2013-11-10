@@ -79,52 +79,6 @@ module AFMotion
   end
 end
 
-# TODO: remove this when/if https://github.com/AFNetworking/AFNetworking/issues/1388 resolved
-module AFMotion
-  module QueryPairHelper
-    module_function
-
-    def af_QueryStringPairsFromDictionary(dictionary)
-      af_QueryStringPairsFromKeyAndValue(nil, dictionary)
-    end
-
-    def af_QueryStringPairsFromKeyAndValue(key, value)
-      mutableQueryStringComponents = []
-      if value.is_a?(NSDictionary)
-        sortDescriptor = NSSortDescriptor.sortDescriptorWithKey("description", ascending: true, selector:'caseInsensitiveCompare:')
-        value.allKeys.sortedArrayUsingDescriptors([sortDescriptor]).each do |nestedKey|
-          nestedValue = value[nestedKey]
-          if nestedValue
-            mutableQueryStringComponents += af_QueryStringPairsFromKeyAndValue(key ? "#{key}[#{nestedKey}]" : nestedKey, nestedValue)
-          end
-        end
-      elsif value.is_a?(NSArray)
-        value.each do |obj|
-          mutableQueryStringComponents += af_QueryStringPairsFromKeyAndValue(key, obj)
-        end
-      elsif value.is_a?(NSSet)
-        value.each do |obj|
-          mutableQueryStringComponents += af_QueryStringPairsFromKeyAndValue(key, obj)
-        end
-      else
-        mutableQueryStringComponents << AFQueryStringPair.alloc.initWithField(key, value: value)
-      end
-
-      mutableQueryStringComponents
-    end
-  end
-
-  class MultipartParametersWrapper < Hash
-    def initialize(parameters)
-      super()
-      query_pairs = QueryPairHelper.af_QueryStringPairsFromDictionary(parameters)
-      query_pairs.each do |key_pair|
-        self[key_pair.field] = key_pair.value
-      end
-    end
-  end
-end
-
 class AFHTTPRequestOperationManager
   include AFMotion::ClientShared
 
@@ -133,5 +87,18 @@ class AFHTTPRequestOperationManager
     define_method "#{method}", -> (path, parameters = {}, &callback) do
       create_operation(method, path, parameters, &callback)
     end
+  end
+
+  # options = {parameters: , constructingBodyWithBlock: , success:, failure:}
+  def PUT(url_string, options = {})
+    parameters = options[:parameters]
+    block = options[:constructingBodyWithBlock]
+    success = options[:success]
+    failure = options[:failure]
+    request = self.requestSerializer.multipartFormRequestWithMethod("PUT", URLString: NSURL.URLWithString(url_string, relativeToURL:self.baseURL).absoluteString, parameters: parameters, constructingBodyWithBlock:block)
+    operation = self.HTTPRequestOperationWithRequest(request, success:success, failure:failure)
+    self.operationQueue.addOperation(operation)
+
+    operation
   end
 end

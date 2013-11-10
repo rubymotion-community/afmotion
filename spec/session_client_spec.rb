@@ -105,7 +105,7 @@ end
 
 describe "AFHTTPSessionManager" do
   before do
-    @client = AFHTTPSessionManager.alloc.initWithBaseURL("http://google.com/".to_url,
+    @client = AFHTTPSessionManager.alloc.initWithBaseURL("http://bing.com/".to_url,
       sessionConfiguration: NSURLSessionConfiguration.defaultSessionConfiguration)
   end
 
@@ -167,50 +167,59 @@ describe "AFHTTPSessionManager" do
     end
   end
 
-  describe "#multipart_post" do
-    it "should trigger multipart request" do
-      @client.multipart_post("", test: "Herp") do |result, form_data|
-        @result = result
-        resume if result
-      end
 
-      wait_max(10) do
-        @result.should.not == nil
-        @result.task.currentRequest.valueForHTTPHeaderField("Content-Type").include?("multipart/form-data").should == true
-      end
-    end
+  ["multipart_post", "multipart_put"].each do |multipart_method|
+    describe "##{multipart_method}" do
+      it "should trigger multipart request" do
+        @client.send(multipart_method, "", test: "Herp") do |result, form_data|
+          @result = result
+          resume if result
+        end
 
-    it "should work with form data" do
-      @client.multipart_post("", test: "Herp") do |result, form_data|
-        if result
-          resume
-        else
-          @form_data = form_data
+        wait_max(10) do
+          @result.should.not == nil
+          @result.task.currentRequest.valueForHTTPHeaderField("Content-Type").include?("multipart/form-data").should == true
         end
       end
 
-      wait_max(10) do
-        @form_data.should.not == nil
-      end
-    end
+      it "should work with form data" do
+        @client.send(multipart_method, "", test: "Herp") do |result, form_data|
+          if result
+            resume
+          else
+            @form_data = form_data
+          end
+        end
 
-    it "should have upload callback with raw progress" do
-      image = UIImage.imageNamed("test")
-      @data = UIImagePNGRepresentation(image)
-      @client = AFHTTPRequestOperationManager.alloc.initWithBaseURL("http://bing.com/".to_url)
-      @client.multipart_post("", test: "Herp") do |result, form_data, progress|
-        if form_data
-          form_data.appendPartWithFileData(@data, name: "test", fileName:"test.png", mimeType: "image/png")
-        elsif progress
-          @progress ||= progress
-        elsif result
-          resume
+        wait_max(10) do
+          @form_data.should.not == nil
         end
       end
 
-      wait_max(20) do
-        @progress.should <= 1.0
-        @progress.should.not == nil
+      it "should have upload callback with raw progress" do
+        image = UIImage.imageNamed("test")
+        @data = UIImagePNGRepresentation(image)
+        @file_added = nil
+        @client.send(multipart_method, "", test: "Herp") do |result, form_data, progress|
+          if form_data
+            @file_added = true
+            form_data.appendPartWithFileData(@data, name: "test", fileName:"test.png", mimeType: "image/png")
+          elsif progress
+            @progress ||= progress
+          elsif result
+            @result = result
+            resume
+          end
+        end
+
+        wait_max(20) do
+          @file_added.should == true
+          if (UIDevice.currentDevice.model =~ /simulator/i).nil?
+            @progress.should <= 1.0
+            @progress.should.not == nil
+          end
+          @result.should.not == nil
+        end
       end
     end
   end

@@ -1,4 +1,30 @@
 module AFMotion
+  # ported from https://github.com/AFNetworking/AFNetworking/blob/master/UIKit%2BAFNetworking/UIProgressView%2BAFNetworking.m
+  class SessionObserver
+
+    def initialize(task, callback)
+      @callback = callback
+      task.addObserver(self, forKeyPath:"state", options:0, context:nil)
+      task.addObserver(self, forKeyPath:"countOfBytesSent", options:0, context:nil)
+    end
+
+    def observeValueForKeyPath(keyPath, ofObject: object, change: change, context: context)
+      # I've only seen this be -1, so callback might not get called
+      if keyPath == "countOfBytesSent" && object.countOfBytesExpectedToSend > 0
+        @callback.call(nil, object.countOfBytesSent.to_f, object.countOfBytesExpectedToSend.to_f)
+      end
+
+      if keyPath == "state" && object.state == NSURLSessionTaskStateCompleted
+        begin
+          object.removeObserver(self, forKeyPath: "state")
+          object.removeObserver(self, forKeyPath: "countOfBytesSent")
+          @callback = nil
+        rescue
+        end
+      end
+    end
+  end
+
   module ClientShared
     def headers
       requestSerializer.headers
@@ -13,13 +39,15 @@ module AFMotion
     end
 
     def multipart_post(path, parameters = {}, &callback)
-      create_multipart_operation(path, parameters, &callback)
+      create_multipart_operation(:post, path, parameters, &callback)
     end
 
-    def create_multipart_operation(path, parameters = {}, &callback)
-      parameters = AFMotion::MultipartParametersWrapper.new(parameters)
-      inner_callback = Proc.new do |result, form_data,  bytes_written_now,  total_bytes_written, total_bytes_expect|
+    def multipart_put(path, parameters = {}, &callback)
+      create_multipart_operation(:put, path, parameters, &callback)
+    end
 
+    def create_multipart_operation(http_method, path, parameters = {}, &callback)
+      inner_callback = Proc.new do |result, form_data,  bytes_written_now,  total_bytes_written, total_bytes_expect|
         case callback.arity
         when 1
           callback.call(result)
@@ -37,7 +65,7 @@ module AFMotion
       end
 
       multipart_callback = nil
-      if callback.arity == 2
+      if callback.arity > 1
         multipart_callback = lambda { |formData|
           inner_callback.call(nil, formData)
         }
@@ -50,20 +78,29 @@ module AFMotion
         }
       end
 
-      operation = self.POST(path,
-        parameters: parameters,
-        constructingBodyWithBlock: multipart_callback,
-        success: lambda {|operation, responseObject|
-          result = AFMotion::HTTPResult.new(operation, responseObject, nil)
-          inner_callback.call(result)
-        }, failure: lambda {|operation, error|
-          result = AFMotion::HTTPResult.new(operation, operation.responseObject, error)
-          inner_callback.call(result)
-        })
-      if upload_callback
-        operation.setUploadProgressBlock(upload_callback)
+      http_method = http_method.to_s.upcase
+      if http_method == "POST"
+        operation_or_task = self.POST(path,
+          parameters: parameters,
+          constructingBodyWithBlock: multipart_callback,
+          success: AFMotion::Operation.success_block_for_http_method(:post, inner_callback),
+          failure: AFMotion::Operation.failure_block(inner_callback))
+      else
+        operation_or_task = self.PUT(path,
+          parameters: parameters,
+          constructingBodyWithBlock: multipart_callback,
+          success: AFMotion::Operation.success_block_for_http_method(:pust, inner_callback),
+          failure: AFMotion::Operation.failure_block(inner_callback))
       end
-      operation
+      if upload_callback
+        if operation_or_task.is_a?(AFURLConnectionOperation)
+          operation_or_task.setUploadProgressBlock(upload_callback)
+        else
+          # using NSURLSession - messy, probably leaks
+          @observer = SessionObserver.new(operation_or_task, upload_callback)
+        end
+      end
+      operation_or_task
     end
 
     def create_operation(http_method, path, parameters = {}, &callback)
