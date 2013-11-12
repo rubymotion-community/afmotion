@@ -9,9 +9,10 @@ module AFMotion
     end
 
     def observeValueForKeyPath(keyPath, ofObject: object, change: change, context: context)
-      # I've only seen this be -1, so callback might not get called
-      if keyPath == "countOfBytesSent" && object.countOfBytesExpectedToSend > 0
-        @callback.call(nil, object.countOfBytesSent.to_f, object.countOfBytesExpectedToSend.to_f)
+      if keyPath == "countOfBytesSent"
+        # Could be -1, see https://github.com/AFNetworking/AFNetworking/issues/1354
+        expectation = (object.countOfBytesExpectedToSend > 0) ? object.countOfBytesExpectedToSend.to_f : nil
+        @callback.call(nil, object.countOfBytesSent.to_f, expectation)
       end
 
       if keyPath == "state" && object.state == NSURLSessionTaskStateCompleted
