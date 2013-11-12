@@ -89,7 +89,7 @@ module AFMotion
         operation_or_task = self.PUT(path,
           parameters: parameters,
           constructingBodyWithBlock: multipart_callback,
-          success: AFMotion::Operation.success_block_for_http_method(:pust, inner_callback),
+          success: AFMotion::Operation.success_block_for_http_method(:post, inner_callback),
           failure: AFMotion::Operation.failure_block(inner_callback))
       end
       if upload_callback
