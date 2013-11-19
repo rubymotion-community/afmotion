@@ -2,7 +2,8 @@ class AppDelegate
   attr_accessor :navigationController, :window
   def application(application, didFinishLaunchingWithOptions:launchOptions)
 
-    AFMotion::Client.build_shared("https://alpha-api.app.net") do
+    AFMotion::SessionClient.build_shared("https://alpha-api.app.net") do
+      session_configuration :default
       header "Accept", "application/json"
 
       request_serializer :json

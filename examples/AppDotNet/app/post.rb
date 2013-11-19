@@ -8,7 +8,7 @@ class Post
   end
 
   def self.fetchGlobalTimelinePosts(&callback)
-    AFMotion::Client.shared.get("stream/0/posts/stream/global") do |result|
+    AFMotion::SessionClient.shared.get("stream/0/posts/stream/global") do |result|
       if result.success?
         posts = []
         result.object["data"].each do |attributes|
