@@ -93,6 +93,8 @@ You can also request arbitrary images:
 
 2. `require 'afmotion'` or add to your `Gemfile`
 
+3. `rake pod:install`
+
 ## Overview
 
 ### Results
