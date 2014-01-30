@@ -91,7 +91,7 @@ You can also request arbitrary images:
 
 1. `gem install afmotion`
 
-2. `require 'afmotion'` or add to your `Gemfile`
+2. `require 'afmotion'` or add to your `Gemfile` (`gem 'afmotion', '~> 2.1.0'`)
 
 3. `rake pod:install`
 
