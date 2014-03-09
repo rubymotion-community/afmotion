@@ -1,5 +1,5 @@
 module AFMotion
-  VERSION = "2.1.1"
+  VERSION = "2.1.2"
 
   HTTP_METHODS = [:get, :post, :put, :delete, :patch, :head]
 end
