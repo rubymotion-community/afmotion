@@ -11,6 +11,7 @@ module AFMotion
     end
 
     def self.configure_manager(manager)
+      manager.http!
     end
   end
 
