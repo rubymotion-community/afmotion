@@ -16,6 +16,6 @@ Motion::Project::App.setup do |app|
   end
 
   app.pods do
-    pod 'AFNetworking', '~> 2.1.0'
+    pod 'AFNetworking', '~> 2.2.4'
   end
 end
