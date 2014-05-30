@@ -41,6 +41,11 @@ module AFMotion
       self
     end
 
+    def http!
+      with_request_serializer(AFHTTPRequestSerializer).
+        with_response_serializer(AFHTTPResponseSerializer)
+    end
+
     def json!
       with_request_serializer(AFJSONRequestSerializer).
         with_response_serializer(AFJSONResponseSerializer)

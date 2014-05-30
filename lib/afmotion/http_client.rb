@@ -11,7 +11,12 @@ module AFMotion
         operation_manager = AFHTTPRequestOperationManager.alloc.initWithBaseURL(base_url.to_url)
         if block
           dsl = AFMotion::ClientDSL.new(operation_manager)
-          dsl.instance_eval(&block)
+          case block.arity
+          when 0
+            dsl.instance_eval(&block)
+          when 1
+            block.call(dsl)
+          end
         end
         if !operation_manager.operationQueue
           operation_manager.operationQueue = NSOperationQueue.mainQueue

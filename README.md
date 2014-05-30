@@ -91,7 +91,7 @@ You can also request arbitrary images:
 
 1. `gem install afmotion`
 
-2. `require 'afmotion'` or add to your `Gemfile`
+2. `require 'afmotion'` or add to your `Gemfile` (`gem 'afmotion', '~> 2.1.0'`)
 
 3. `rake pod:install`
 
@@ -262,3 +262,13 @@ The `AFMotion::Client` & `AFMotion::SessionClient` DSLs allows the following pro
 For `AFMotion::SessionClient` only:
 
 - `session_configuration(session_configuration, identifier = nil)`. Allows you to set the [`NSURLSessionConfiguration`](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSessionConfiguration_class/Reference/Reference.html#//apple_ref/occ/cl/NSURLSessionConfiguration). Accepts `:default`, `:ephemeral`, `:background` (with the `identifier` as a String), or an instance of `NSURLSessionConfiguration`.
+
+You can also configure your client by passing it as a block argument:
+
+```ruby
+client = AFMotion::SessionClient.build("https://alpha-api.app.net/") do |client|
+  client.session_configuration :default
+
+  client.header "Accept", @custom_header
+end
+```

@@ -1,3 +1,12 @@
 language: objective-c
-install: bundle install
-script: pod setup; bundle exec rake pod:install COCOAPODS_VERBOSE=1; bundle exec rake spec
+before_install:
+- (ruby --version)
+- sudo chown -R travis ~/Library/RubyMotion
+- mkdir -p ~/Library/RubyMotion/build
+- bundle install
+- pod setup
+- bundle exec rake pod:install
+script: bundle exec rake spec
+env:
+  global:
+  - COCOAPODS_NO_REPO_UPDATE_OUTPUT=true
