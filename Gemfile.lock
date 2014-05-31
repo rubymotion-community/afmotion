@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    afmotion (2.1.5)
+    afmotion (2.2.0)
       motion-cocoapods (>= 1.4.1)
       motion-require (>= 0.1)
 
