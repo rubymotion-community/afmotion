@@ -8,6 +8,8 @@ Bundler.require :default
 $:.unshift("./lib/")
 require './lib/afmotion'
 
+require 'webstub'
+
 Motion::Project::App.setup do |app|
   # Use `rake config' to see complete project settings.
   app.name = 'AFMotion'
