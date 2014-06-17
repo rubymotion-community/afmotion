@@ -73,13 +73,20 @@ module AFMotion
       form: AFHTTPResponseSerializer
     }
     def response_serializer(serializer)
+      write_json_options = true
       if serializer.is_a?(Symbol) || serializer.is_a?(String)
         @operation_manager.responseSerializer = OPERATION_TO_RESPONSE_SERIALIZER[serializer.to_sym].serializer
       elsif serializer.is_a?(Class)
         @operation_manager.responseSerializer = serializer.serializer
       else
         @operation_manager.responseSerializer = serializer
+        write_json_options = false
       end
+      af_serializer = @operation_manager.responseSerializer
+      if af_serializer.is_a?(AFJSONResponseSerializer) && write_json_options
+        af_serializer.readingOptions = NSJSONReadingMutableContainers
+      end
+      af_serializer
     end
   end
 end
@@ -89,7 +96,7 @@ class AFHTTPRequestOperationManager
 
   AFMotion::HTTP_METHODS.each do |method|
     # EX client.get('my/resource.json')
-    define_method "#{method}", -> (path, parameters = {}, &callback) do
+    define_method "#{method}", -> (path, parameters = nil, &callback) do
       create_operation(method, path, parameters, &callback)
     end
   end

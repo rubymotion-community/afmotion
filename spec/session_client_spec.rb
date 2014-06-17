@@ -48,6 +48,16 @@ describe "AFMotion::SessionClientDSL" do
         @dsl.to_session_manager.responseSerializer.is_a?(enc_class).should == true
       end
     end
+
+    it "should set mutable reading options for JSON serializer" do
+      @dsl.response_serializer :json
+      @dsl.to_session_manager.responseSerializer.readingOptions.should == NSJSONReadingMutableContainers
+    end
+
+    it "should not set reading options for JSON serializer if raw one supplied" do
+      @dsl.response_serializer AFJSONResponseSerializer.serializer
+      @dsl.to_session_manager.responseSerializer.readingOptions.should.not == NSJSONReadingMutableContainers
+    end
   end
 
   describe "#session_configuration" do

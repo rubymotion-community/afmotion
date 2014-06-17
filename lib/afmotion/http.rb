@@ -18,6 +18,7 @@ module AFMotion
   class JSON < HTTP
     def self.configure_manager(manager)
       manager.json!
+      manager.responseSerializer.readingOptions = NSJSONReadingMutableContainers
     end
   end
 
