@@ -96,7 +96,7 @@ class AFHTTPRequestOperationManager
 
   AFMotion::HTTP_METHODS.each do |method|
     # EX client.get('my/resource.json')
-    define_method "#{method}", -> (path, parameters = {}, &callback) do
+    define_method "#{method}", -> (path, parameters = nil, &callback) do
       create_operation(method, path, parameters, &callback)
     end
   end
