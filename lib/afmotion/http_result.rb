@@ -90,8 +90,8 @@ module AFMotion
 
     ##
     # switch from http status code to rails style HTTP status code symbols
-    def switch_code code=200
-      HTTP_STATUS_CODES[code]
+    def code_symbol
+      HTTP_STATUS_CODES[status]
     end
     
     ##
@@ -108,18 +108,22 @@ module AFMotion
       server_error: /5\d\d/
     }.each do |key, value|
       define_method "#{key}?" do
-        return if true self.status =~ value
-        false
+        puts value.class
+        if self.status.to_s =~ value
+          true
+        else
+          false
+        end
       end
     end
 
     def method_missing(method_name, *args, &block)
-      if method_names =~ /(.+)?/
-        key = HTTP_STATUS_CODES.key($1)
+      if method_name =~ /(.+)\?/
+        key = HTTP_STATUS_CODES.key($1.to_sym)
         if key.nil?
           super
         else
-          if key == status
+          if key.to_s == status.to_s
             return true
           else
             return false
