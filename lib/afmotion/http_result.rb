@@ -108,7 +108,6 @@ module AFMotion
       server_error: /5\d\d/
     }.each do |key, value|
       define_method "#{key}?" do
-        puts value.class
         if self.status.to_s =~ value
           true
         else
