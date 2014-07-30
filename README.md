@@ -105,6 +105,7 @@ Each AFMotion wrapper callback yields an `AFMotion::HTTPResult` object. This obj
 AFMotion::some_function do |result|
   # result.operation is the AFURLConnectionOperation instance
   p result.operation.inspect
+  p result.status_code
 
   if result.success?
     # result.object depends on the type of operation.

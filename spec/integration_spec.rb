@@ -3,6 +3,8 @@ describe "AFMotion" do
 
   before do
     disable_network_access!
+    @object = nil
+    @result = nil
   end
 
   after do
@@ -17,6 +19,7 @@ describe "AFMotion" do
         to_return(json: {"data" => ["thing"]}, delay: 0.3)
 
       AFMotion::JSON.get(url) do |result|
+        @result = result
         @object = result.object
         resume
       end
@@ -31,6 +34,8 @@ describe "AFMotion" do
 
         @object.delete('data')
         @object.count.should == 1
+
+        @result.status_code.should == 200
       end
     end
   end
@@ -48,6 +53,7 @@ describe "AFMotion" do
         end
 
         client.get(path, nil) do |result|
+          @result = result
           @object = result.object
           resume
         end
@@ -62,6 +68,8 @@ describe "AFMotion" do
 
           @object.delete('data')
           @object.count.should == 1
+
+          @result.status_code.should == 200
         end
       end
     end

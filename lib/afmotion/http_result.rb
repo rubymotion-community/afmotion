@@ -22,6 +22,14 @@ module AFMotion
       !!error
     end
 
+    def status_code
+      if self.operation
+        self.operation.response.statusCode
+      else
+        self.task.response.statusCode
+      end
+    end
+
     def body
       if task && task.currentRequest
         raise "Cannot call result.body of a task"
