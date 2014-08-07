@@ -91,7 +91,7 @@ module AFMotion
     SESSION_CONFIGURATION_SHORTHAND = {
       default: :defaultSessionConfiguration,
       ephemeral: :ephemeralSessionConfiguration,
-      background: "backgroundSessionConfiguration:".to_sym
+      background: "backgroundSessionConfigurationWithIdentifier:".to_sym
     }
 
     def session_configuration(session_configuration, identifier = nil)
