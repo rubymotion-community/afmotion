@@ -27,6 +27,8 @@ module AFMotion
         self.operation.response.statusCode
       elsif self.task
         self.task.response.statusCode
+      else
+        nil
       end
     end
 
