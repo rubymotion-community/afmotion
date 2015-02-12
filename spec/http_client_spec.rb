@@ -30,6 +30,18 @@ describe "AFMotion::ClientDSL" do
         @client.requestSerializer.is_a?(op_class).should == true
       end
     end
+
+    it "should retain header configuration" do
+      @dsl.header "X-Order", "agnostic"
+      @dsl.request_serializer :json
+      @client.requestSerializer.HTTPRequestHeaders["X-Order"].should == "agnostic"
+    end
+
+    it "should retain authorization" do
+      @dsl.authorization username: "clay", password: "test"
+      @dsl.request_serializer :json
+      @client.requestSerializer.HTTPRequestHeaders["Authorization"].nil?.should == false
+    end
   end
 
   describe "#response_serializer" do
