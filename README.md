@@ -257,7 +257,7 @@ The `AFMotion::Client` & `AFMotion::SessionClient` DSLs allows the following pro
 
 - `header(header, value)`
 - `authorization(username: ___, password: ____)` for HTTP Basic auth, or `authorization(token: ____)` for Token based auth.
-- `request_serializer(serializer)`. Allows you to set an [`AFURLRequestSerialization`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Protocols/AFURLRequestSerialization.html) for all your client's requests, which determines how data is encoded on the way to the server. So if your API is always going to be JSON, you should set `operation(:json)`. Accepts `:json` and `:plist`, or any instance of `AFURLRequestSerialization`.
+- `request_serializer(serializer)`. Allows you to set an [`AFURLRequestSerialization`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Protocols/AFURLRequestSerialization.html) for all your client's requests, which determines how data is encoded on the way to the server. So if your API is always going to be JSON, you should set `operation(:json)`. Accepts `:json` and `:plist`, or any instance of `AFURLRequestSerialization` and must be called before calling `header` or `authorization` or else the [headers will not be applied](https://github.com/clayallsopp/afmotion/issues/78).
 - `response_serializer(serializer)`. Allows you to set an [`AFURLResponseSerialization`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Protocols/AFURLResponseSerialization.html), which determines how data is decoded once the server respnds. Accepts `:json`, `:xml`, `:plist`, `:image`, `:http`, or any instance of `AFURLResponseSerialization`.
 
 For `AFMotion::SessionClient` only:
