@@ -1,6 +1,6 @@
 # AFMotion
 
-[![Build Status](https://travis-ci.org/usepropeller/afmotion.png?branch=master)](https://travis-ci.org/usepropeller/afmotion)
+[![Build Status](https://travis-ci.org/clayallsopp/afmotion.png?branch=master)](https://travis-ci.org/clayallsopp/afmotion)
 
 AFMotion is a thin RubyMotion wrapper for [AFNetworking](https://github.com/AFNetworking/AFNetworking), the absolute best networking library on iOS.
 
