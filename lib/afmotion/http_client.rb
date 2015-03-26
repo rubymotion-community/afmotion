@@ -35,10 +35,12 @@ end
 module AFMotion
   class ClientDSL
     def initialize(operation_manager)
+      @headers = {}
       @operation_manager = WeakRef.new(operation_manager)
     end
 
     def header(header, value)
+      @headers[header] = value
       @operation_manager.headers[header] = value
     end
 
@@ -62,6 +64,11 @@ module AFMotion
       else
         @operation_manager.requestSerializer = serializer
       end
+      reinit_options
+    end
+
+    def reinit_options
+      @headers.each{ |h,v| header(h, v) } unless @headers.empty?
     end
 
     OPERATION_TO_RESPONSE_SERIALIZER = {
