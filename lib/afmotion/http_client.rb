@@ -35,12 +35,11 @@ end
 module AFMotion
   class ClientDSL
     def initialize(operation_manager)
-      @headers = {}
-      @authorization = nil
       @operation_manager = WeakRef.new(operation_manager)
     end
 
     def header(header, value)
+      @headers ||= {}
       @headers[header] = value
       @operation_manager.headers[header] = value
     end
@@ -70,7 +69,7 @@ module AFMotion
     end
 
     def reinit_options
-      @headers.each{ |h,v| header(h, v) } unless @headers.empty?
+      @headers.each{ |h,v| header(h, v) } if !@headers.nil? && !@headers.empty?
       authorization(@authorization) if @authorization
     end
 
