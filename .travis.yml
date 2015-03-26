@@ -1,11 +1,15 @@
 language: objective-c
 before_install:
-- (ruby --version)
-- sudo chown -R travis ~/Library/RubyMotion
-- mkdir -p ~/Library/RubyMotion/build
-- bundle install
-- pod setup
-- bundle exec rake pod:install
+  - (ruby --version)
+  - sudo chown -R travis ~/Library/RubyMotion
+  - sudo mkdir -p ~/Library/RubyMotion/build
+  - sudo chown -R travis ~/Library/RubyMotion/build
+  - sudo motion update
+  - bundle install
+  - pod setup
+  - bundle exec rake pod:install
+gemfile:
+  - Gemfile
 script: bundle exec rake spec
 env:
   global:
