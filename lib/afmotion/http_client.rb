@@ -36,6 +36,7 @@ module AFMotion
   class ClientDSL
     def initialize(operation_manager)
       @headers = {}
+      @authorization = nil
       @operation_manager = WeakRef.new(operation_manager)
     end
 
@@ -45,6 +46,7 @@ module AFMotion
     end
 
     def authorization(options = {})
+      @authorization = options
       @operation_manager.requestSerializer.authorization = options
     end
 
@@ -69,6 +71,7 @@ module AFMotion
 
     def reinit_options
       @headers.each{ |h,v| header(h, v) } unless @headers.empty?
+      authorization(@authorization) if @authorization
     end
 
     OPERATION_TO_RESPONSE_SERIALIZER = {
