@@ -104,7 +104,7 @@ module AFMotion
       @operation_manager.headers[header] = value
     end
 
-    def apply_authorization(options = {})
+    def apply_authorization(options)
       @operation_manager.requestSerializer.authorization = options
     end
 
