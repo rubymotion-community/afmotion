@@ -208,7 +208,7 @@ data = UIImagePNGRepresentation(image)
 client.multipart_post("avatars") do |result, form_data|
   if form_data
     # Called before request runs
-    # see: https://github.com/AFNetworking/AFNetworking/wiki/AFNetworking-FAQ
+    # see: http://cocoadocs.org/docsets/AFNetworking/2.5.0/Protocols/AFMultipartFormData.html
     form_data.appendPartWithFileData(data, name: "avatar", fileName:"avatar.png", mimeType: "image/png")
   elsif result.success?
     ...
