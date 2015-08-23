@@ -7,7 +7,7 @@ before_install:
   - sudo motion update
   - bundle install
   - pod setup
-  - bundle exec rake pod:install
+  - bundle exec rake pod:install > /dev/null
 gemfile:
   - Gemfile
 script: bundle exec rake spec
