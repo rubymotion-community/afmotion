@@ -177,6 +177,24 @@ describe "AFHTTPSessionManager" do
     end
   end
 
+  describe "progress" do
+    it "should call the progress block" do
+      @progression = []
+      progress_block = Proc.new do |bytesRead, totalBytesRead, totalBytesExpectedToRead|
+        @progression << [bytesRead, totalBytesRead, totalBytesExpectedToRead]
+      end
+
+      @client.get("http://google.com", {progress_block: progress_block}) do |result|
+        @result = result
+        resume
+      end
+      wait_max(10) do
+        @progression.empty?.should == false
+      end
+    end
+
+  end
+
 
   ["multipart_post", "multipart_put"].each do |multipart_method|
     describe "##{multipart_method}" do
