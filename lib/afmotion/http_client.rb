@@ -39,11 +39,14 @@ module AFMotion
     end
 
     def header(header, value)
-      @operation_manager.headers[header] = value
+      @headers ||= {}
+      @headers[header] = value
+      apply_header(header, value)
     end
 
     def authorization(options = {})
-      @operation_manager.requestSerializer.authorization = options
+      @authorization = options
+      apply_authorization(options)
     end
 
     def operation_queue(operation_queue)
@@ -62,6 +65,7 @@ module AFMotion
       else
         @operation_manager.requestSerializer = serializer
       end
+      reapply_options
     end
 
     OPERATION_TO_RESPONSE_SERIALIZER = {
@@ -88,6 +92,22 @@ module AFMotion
       end
       af_serializer
     end
+
+    private
+
+    def reapply_options
+      @headers.each{ |h,v| apply_header(h, v) } unless @headers.nil?
+      apply_authorization(@authorization) unless @authorization.nil?
+    end
+
+    def apply_header(header, value)
+      @operation_manager.headers[header] = value
+    end
+
+    def apply_authorization(options)
+      @operation_manager.requestSerializer.authorization = options
+    end
+
   end
 end
 
