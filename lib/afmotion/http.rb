@@ -45,7 +45,6 @@ module AFMotion
       method_signature = "#{method_name.to_s.upcase}:parameters:success:failure:"
       base.define_singleton_method(method_name, -> (url, parameters = nil, &callback) do
         manager = base.operation_manager
-        manager.setDownloadProgressBlock(parameters.delete(:progress_block)) if parameters && parameters[:progress_block]
         manager.send(method_signature, url,
           parameters,
           AFMotion::Operation.success_block_for_http_method(method_name, callback),
