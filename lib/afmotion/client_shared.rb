@@ -108,8 +108,8 @@ module AFMotion
       method_signature = "#{http_method.upcase}:parameters:success:failure:"
       method = self.method(method_signature)
       success_block = AFMotion::Operation.success_block_for_http_method(http_method, callback)
-      operation = method.call(path, parameters, success_block, AFMotion::Operation.failure_block(callback))
-      operation.setDownloadProgressBlock(parameters.delete(:progress_block)) if parameters[:progress_block]
+      failure_block = AFMotion::Operation.failure_block(callback)
+      operation = method.call(path, parameters, success_block, failure_block)
       operation
     end
 
