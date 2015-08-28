@@ -108,7 +108,12 @@ module AFMotion
       method_signature = "#{http_method.upcase}:parameters:success:failure:"
       method = self.method(method_signature)
       success_block = AFMotion::Operation.success_block_for_http_method(http_method, callback)
-      operation = method.call(path, parameters, success_block, AFMotion::Operation.failure_block(callback))
+      failure_block = AFMotion::Operation.failure_block(callback)
+      operation = method.call(path, parameters, success_block, failure_block)
+      if parameters && parameters[:progress_block] && operation.respond_to?(:setDownloadProgressBlock)
+        operation.setDownloadProgressBlock(parameters.delete(:progress_block))
+      end
+      operation
     end
 
     alias_method :create_task, :create_operation

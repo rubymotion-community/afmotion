@@ -87,6 +87,23 @@ describe "AFMotion::Client" do
       client = AFMotion::Client.build_shared("http://url")
       AFMotion::Client.shared.should == client
     end
+
+    it "should call progress when given to a chared client" do
+      image_path = "images/srpr/logo3w.png"
+      client = AFMotion::Client.build_shared("https://www.google.com/")
+      @progression = []
+      progress_block = Proc.new do |bytesRead, totalBytesRead, totalBytesExpectedToRead|
+        @progression << [bytesRead, totalBytesRead, totalBytesExpectedToRead]
+      end
+
+      client.get(image_path, {progress_block: progress_block}) do |result|
+        @result = result
+        resume
+      end
+      wait_max(10) do
+        @progression.empty?.should == false
+      end
+    end
   end
 end
 

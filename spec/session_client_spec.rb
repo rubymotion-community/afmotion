@@ -177,7 +177,6 @@ describe "AFHTTPSessionManager" do
     end
   end
 
-
   ["multipart_post", "multipart_put"].each do |multipart_method|
     describe "##{multipart_method}" do
       it "should trigger multipart request" do
