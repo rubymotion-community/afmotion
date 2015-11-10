@@ -1,22 +1,25 @@
 language: objective-c
-
 before_install:
-  - (ruby --version)
-  - sudo chown -R travis ~/Library/RubyMotion
-  - sudo mkdir -p ~/Library/RubyMotion/build
-  - sudo chown -R travis ~/Library/RubyMotion/build
-  - sudo motion update
-
+- (ruby --version)
+- sudo chown -R travis ~/Library/RubyMotion
+- sudo mkdir -p ~/Library/RubyMotion/build
+- sudo chown -R travis ~/Library/RubyMotion/build
+- sudo motion update
 install:
-  - bundle install
-  - pod setup > /dev/null
-  - bundle exec rake pod:install > /dev/null
-
+- bundle install
+- pod setup > /dev/null
+- bundle exec rake pod:install > /dev/null
 gemfile:
-  - Gemfile
-
+- Gemfile
 script: bundle exec rake spec
-
 env:
   global:
     - COCOAPODS_NO_REPO_UPDATE_OUTPUT=true
+deploy:
+  provider: rubygems
+  api_key:
+    secure: cCwC+P6XvkgW+iE3LY9YpzL8rSwCVVlUQ9dThepSGFN9mmMOYYMhohVm9NS3kkFzCFKCzu80ATi65ndKukOCwLEgsQO4HM9fH2y0XfmYp/aooJUUxzakDA7XI9kWc0SpqURSRujZBobcJnt4HctMLIogihYYQ/DlILgyy+0fU7U=
+  gem: afmotion
+  on:
+    tags: true
+    repo: clayallsopp/afmotion
