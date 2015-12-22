@@ -11,7 +11,8 @@ module AFMotion
     def success_block_for_http_method(http_method, callback)
       if http_method.downcase.to_sym == :head
         return lambda { |operation_or_task|
-          AFMotion::HTTPResult.new(operation_or_task, nil, nil)
+          result = AFMotion::HTTPResult.new(operation_or_task, nil, nil)
+          callback.call(result)
         }
       end
 
