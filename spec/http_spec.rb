@@ -25,6 +25,23 @@ describe "AFMotion" do
           end
         end
       end
+
+      describe ".head" do
+        before do
+          @result = nil
+        end
+
+        it "should work with string" do
+          _module.head("http://google.com") do |result|
+            @result = result
+            resume
+          end
+          wait_max(10) do
+            @result.nil?.should == false
+          end
+        end
+      end
+
     end
   end
 
