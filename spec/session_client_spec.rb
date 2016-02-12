@@ -223,7 +223,7 @@ describe "AFHTTPSessionManager" do
 
         wait_max(20) do
           @file_added.should == true
-          if (UIDevice.currentDevice.model =~ /simulator/i).nil?
+          if (Object.const_defined?("UIDevice") && UIDevice.currentDevice.model =~ /simulator/i).nil?
             @progress.should <= 1.0
             @progress.should.not == nil
           end
