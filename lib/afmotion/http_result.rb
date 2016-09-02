@@ -25,7 +25,7 @@ module AFMotion
     def status_code
       if self.operation && self.operation.response
         self.operation.response.statusCode
-      elsif self.task
+      elsif self.task && self.task.response
         self.task.response.statusCode
       else
         nil
