@@ -1,6 +1,6 @@
 # AFMotion
 
-[![Build Status](https://travis-ci.org/clayallsopp/afmotion.png?branch=master)](https://travis-ci.org/clayallsopp/afmotion)
+[![Build Status](https://travis-ci.org/clayallsopp/afmotion.png?branch=master)](https://travis-ci.org/clayallsopp/afmotion) [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fclayallsopp%2Fafmotion.svg?size=small)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fclayallsopp%2Fafmotion?ref=badge_small)
 
 AFMotion is a thin RubyMotion wrapper for [AFNetworking](https://github.com/AFNetworking/AFNetworking), the absolute best networking library on iOS and OS X.
 
@@ -273,3 +273,7 @@ client = AFMotion::SessionClient.build("https://alpha-api.app.net/") do |client|
   client.header "Accept", @custom_header
 end
 ```
+
+## License
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fclayallsopp%2Fafmotion.svg?size=large)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fclayallsopp%2Fafmotion?ref=badge_large)
