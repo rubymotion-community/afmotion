@@ -33,6 +33,35 @@ end
 end
 ```
 
+### http status code
+You can use the following methods if you need to return HTTP status
+- informational?
+- success?
+- redirection?
+- client_error?
+- server_error?
+
+eg:
+
+```ruby
+@client.get("stream/0/posts/stream/global") do |result|
+  puts result.server_error?
+end
+```
+
+Besides, you also can use rails style HTTP status code symbols
+
+eg:
+
+```ruby
+@client.get("stream/0/posts/stream/global") do |result|
+  puts result.ok?
+  puts result.created?
+  puts result.unauthorized?
+end
+```
+For more methods, you can find here [url](http://guides.rubyonrails.org/layouts_and_rendering.html)
+
 You can either use `AFMotion::Client` or `AFMotion::SessionClient` to group similar requests. They have identical APIs, except for their creation and that their request `result` objects contain either `result.operation` (for `::Client`) or `result.task` (for `::SessionClient`).
 
 #### AFMotion::Client
