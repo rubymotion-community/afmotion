@@ -35,9 +35,9 @@ module AFMotion
       requestSerializer.HTTPRequestHeaders
     end
 
-    def authorization=(authorization)
-      requestSerializer.authorization = authorization
-    end
+    # def authorization=(authorization)
+    #   requestSerializer.authorization = authorization
+    # end
 
     def multipart_post(path, parameters = {}, &callback)
       create_multipart_operation(:post, path, parameters, &callback)
@@ -84,6 +84,7 @@ module AFMotion
         operation_or_task = self.POST(path,
           parameters: parameters,
           constructingBodyWithBlock: multipart_callback,
+          progress: upload_callback,
           success: AFMotion::Operation.success_block_for_http_method(:post, inner_callback),
           failure: AFMotion::Operation.failure_block(inner_callback))
       else
@@ -93,19 +94,27 @@ module AFMotion
           success: AFMotion::Operation.success_block_for_http_method(:post, inner_callback),
           failure: AFMotion::Operation.failure_block(inner_callback))
       end
+
+      # TODO
       if upload_callback
-        if operation_or_task.is_a?(AFURLConnectionOperation)
-          operation_or_task.setUploadProgressBlock(upload_callback)
-        else
+        # if operation_or_task.is_a?(AFURLConnectionOperation)
+        #   operation_or_task.setUploadProgressBlock(upload_callback)
+        # else
           # using NSURLSession - messy, probably leaks
-          @observer = SessionObserver.new(operation_or_task, upload_callback)
-        end
+          # @observer = SessionObserver.new(operation_or_task, upload_callback)
+          operation_or_task.uploadProgressForTask(upload_callback)
+        # end
       end
+
       operation_or_task
     end
 
     def create_operation(http_method, path, parameters = {}, &callback)
-      method_signature = "#{http_method.upcase}:parameters:success:failure:"
+      if http_method == 'post'
+        method_signature = "#{http_method.upcase}:parameters:progress:success:failure:"
+      else
+        method_signature = "#{http_method.upcase}:parameters:success:failure:"
+      end
       method = self.method(method_signature)
       success_block = AFMotion::Operation.success_block_for_http_method(http_method, callback)
       failure_block = AFMotion::Operation.failure_block(callback)
@@ -123,8 +132,8 @@ module AFMotion
     def dummy
       self.GET("", parameters: nil, success: nil, failure: nil)
       self.HEAD("", parameters: nil, success: nil, failure: nil)
-      self.POST("", parameters: nil, success: nil, failure: nil)
-      self.POST("", parameters: nil, constructingBodyWithBlock: nil, success: nil, failure: nil)
+      self.POST("", parameters: nil, progress: nil, success: nil, failure: nil)
+      self.POST("", parameters: nil, constructingBodyWithBlock: nil, progress: nil, success: nil, failure: nil)
       self.PUT("", parameters: nil, success: nil, failure: nil)
       self.DELETE("", parameters: nil, success: nil, failure: nil)
       self.PATCH("", parameters: nil, success: nil, failure: nil)

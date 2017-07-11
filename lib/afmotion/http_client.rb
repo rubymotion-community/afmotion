@@ -6,9 +6,9 @@ module AFMotion
     class << self
       attr_accessor :shared
 
-      # Returns an instance of AFHTTPRequestOperationManager
+      # Returns an instance of AFHTTPSessionManager
       def build(base_url, &block)
-        operation_manager = AFHTTPRequestOperationManager.alloc.initWithBaseURL(base_url.to_url)
+        operation_manager = AFHTTPSessionManager.alloc.initWithBaseURL(base_url.to_url)
         if block
           dsl = AFMotion::ClientDSL.new(operation_manager)
           case block.arity
@@ -44,10 +44,12 @@ module AFMotion
       apply_header(header, value)
     end
 
-    def authorization(options = {})
-      @authorization = options
-      apply_authorization(options)
-    end
+    # def authorization(options = {})
+    #   # request_serializer AFJSONRequestSerializer
+    #   # puts @operation_manager.requestSerializer
+    #   @authorization = options
+    #   apply_authorization(options)
+    # end
 
     def operation_queue(operation_queue)
       @operation_manager.operationQueue = operation_queue
@@ -97,21 +99,21 @@ module AFMotion
 
     def reapply_options
       @headers.each{ |h,v| apply_header(h, v) } unless @headers.nil?
-      apply_authorization(@authorization) unless @authorization.nil?
+      # apply_authorization(@authorization) unless @authorization.nil?
     end
 
     def apply_header(header, value)
       @operation_manager.headers[header] = value
     end
 
-    def apply_authorization(options)
-      @operation_manager.requestSerializer.authorization = options
-    end
+    # def apply_authorization(options)
+    #   @operation_manager.requestSerializer.authorization = options
+    # end
 
   end
 end
 
-class AFHTTPRequestOperationManager
+class AFHTTPSessionManager
   include AFMotion::ClientShared
 
   AFMotion::HTTP_METHODS.each do |method|

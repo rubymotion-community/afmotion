@@ -1,12 +1,14 @@
 module AFMotion
   module Operation
     module_function
-    def for_request(ns_url_request, &callback)
-      operation = AFHTTPRequestOperation.alloc.initWithRequest(ns_url_request)
-      success_block = success_block_for_http_method(ns_url_request.HTTPMethod, callback)
-      operation.setCompletionBlockWithSuccess(success_block, failure: failure_block(callback))
-      operation
-    end
+    
+    # Commenting this out didn't kill any tests. Is it actually used??
+    # def for_request(ns_url_request, &callback)
+    #   operation = NSURLSessionTask.alloc.initWithRequest(ns_url_request)
+    #   success_block = success_block_for_http_method(ns_url_request.HTTPMethod, callback)
+    #   operation.setCompletionBlockWithSuccess(success_block, failure: failure_block(callback))
+    #   operation
+    # end
 
     def success_block_for_http_method(http_method, callback)
       if http_method.downcase.to_sym == :head
@@ -24,7 +26,7 @@ module AFMotion
 
     def failure_block(callback)
       lambda { |operation_or_task, error|
-        response_object = operation_or_task.is_a?(AFHTTPRequestOperation) ? operation_or_task.responseObject : nil
+        response_object = operation_or_task.is_a?(NSURLSessionTask) ? operation_or_task.response : nil
         result = AFMotion::HTTPResult.new(operation_or_task, response_object, error)
         callback.call(result)
       }
@@ -67,10 +69,14 @@ module AFMotion
   end
 end
 
-class AFHTTPRequestOperation
+class NSURLSessionTask
   include AFMotion::Serialization
 end
 
-class AFHTTPRequestOperationManager
+class NSURLSessionDataTask
+  include AFMotion::Serialization
+end
+
+class AFHTTPSessionManager
   include AFMotion::Serialization
 end

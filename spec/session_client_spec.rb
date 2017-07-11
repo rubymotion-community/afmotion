@@ -12,7 +12,8 @@ describe "AFMotion::SessionClientDSL" do
 
   describe "#authorization" do
     it "should set authorization" do
-      @dsl.authorization username: "clay", password: "test"
+      # @dsl.authorization username: "clay", password: "test"
+      @dsl.header "Authorization", "Basic clay:pass"
       @dsl.to_session_manager.requestSerializer.HTTPRequestHeaders["Authorization"].nil?.should == false
     end
   end
@@ -141,14 +142,18 @@ describe "AFHTTPSessionManager" do
 
   describe "#authorization=" do
     it "should set basic auth" do
-      @client.authorization = {username: "clay", password: "pass"}
+      # @client.authorization = {username: "clay", password: "pass"}
+      # TODO need to encode user:pass
+      @client.requestSerializer.setValue("Basic clay:pass", forHTTPHeaderField: "Authorization")
       @client.requestSerializer.HTTPRequestHeaders["Authorization"].split[0].should == "Basic"
     end
   end
 
   describe "#build_shared" do
     it "should set AFMotion::Client.shared" do
-      @client.authorization = {token: "clay"}
+      # @client.authorization = {token: "clay"}
+      @client.requestSerializer.setValue("Token clay", forHTTPHeaderField: "Authorization")
+      puts @client
       @client.requestSerializer.HTTPRequestHeaders["Authorization"].split[0].should == "Token"
     end
   end

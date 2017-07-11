@@ -1,6 +1,6 @@
 describe "AFMotion::ClientDSL" do
   before do
-    @client = AFHTTPRequestOperationManager.alloc.initWithBaseURL("http://url".to_url)
+    @client = AFHTTPSessionManager.alloc.initWithBaseURL("http://url".to_url)
     @dsl = AFMotion::ClientDSL.new(@client)
   end
 
@@ -13,7 +13,8 @@ describe "AFMotion::ClientDSL" do
 
   describe "#authorization" do
     it "should set authorization" do
-      @dsl.authorization username: "clay", password: "test"
+      # @dsl.authorization username: "clay", password: "test"
+      @dsl.header "Authorization", "Basic clay:pass"
       @client.requestSerializer.HTTPRequestHeaders["Authorization"].nil?.should == false
     end
   end
@@ -38,7 +39,8 @@ describe "AFMotion::ClientDSL" do
     end
 
     it "should retain authorization" do
-      @dsl.authorization username: "clay", password: "test"
+      # @dsl.authorization username: "clay", password: "test"
+      @dsl.header "Authorization", "Basic clay:pass"
       @dsl.request_serializer :json
       @client.requestSerializer.HTTPRequestHeaders["Authorization"].nil?.should == false
     end
@@ -76,9 +78,9 @@ end
 
 describe "AFMotion::Client" do
   describe ".build" do
-    it "should return an AFHTTPRequestOperationManager" do
+    it "should return an AFHTTPSessionManager" do
       client = AFMotion::Client.build("http://url")
-      client.is_a?(AFHTTPRequestOperationManager).should == true
+      client.is_a?(AFHTTPSessionManager).should == true
     end
   end
 
@@ -88,7 +90,7 @@ describe "AFMotion::Client" do
       AFMotion::Client.shared.should == client
     end
 
-    it "should call progress when given to a chared client" do
+    it "should call progress when given to a shared client" do
       image_path = "images/srpr/logo3w.png"
       client = AFMotion::Client.build_shared("https://www.google.com/")
       @progression = []
@@ -109,7 +111,7 @@ end
 
 describe "AFHTTPClient" do
   before do
-    @client = AFHTTPRequestOperationManager.alloc.initWithBaseURL("http://google.com/".to_url)
+    @client = AFHTTPSessionManager.alloc.initWithBaseURL("http://google.com/".to_url)
   end
 
   describe "URL Helpers" do
@@ -134,14 +136,16 @@ describe "AFHTTPClient" do
 
   describe "#authorization=" do
     it "should set basic auth" do
-      @client.authorization = {username: "clay", password: "pass"}
+      # @client.authorization = {username: "clay", password: "pass"}
+      @client.requestSerializer.setValue("Basic clay:pass", forHTTPHeaderField: "Authorization")
       @client.requestSerializer.HTTPRequestHeaders["Authorization"].split[0].should == "Basic"
     end
   end
 
   describe "#build_shared" do
     it "should set AFMotion::Client.shared" do
-      @client.authorization = {token: "clay"}
+      # @client.authorization = {token: "clay"}
+      @client.requestSerializer.setValue("Token clay", forHTTPHeaderField: "Authorization")
       @client.requestSerializer.HTTPRequestHeaders["Authorization"].split[0].should == "Token"
     end
   end
@@ -180,7 +184,7 @@ describe "AFHTTPClient" do
 
         wait_max(10) do
           @result.should.not == nil
-          @result.operation.request.valueForHTTPHeaderField("Content-Type").include?("multipart/form-data").should == true
+          @result.task.currentRequest.valueForHTTPHeaderField("Content-Type").include?("multipart/form-data").should == true
         end
       end
 
@@ -202,7 +206,7 @@ describe "AFHTTPClient" do
         image = UIImage.imageNamed("test")
         @data = UIImagePNGRepresentation(image)
         @file_added = false
-        @client = AFHTTPRequestOperationManager.alloc.initWithBaseURL("http://bing.com/".to_url)
+        @client = AFHTTPSessionManager.alloc.initWithBaseURL("http://bing.com/".to_url)
         @client.send(multipart_method, "", test: "Herp") do |result, form_data, progress|
           if form_data
             @file_added = true

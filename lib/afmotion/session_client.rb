@@ -18,7 +18,7 @@ module AFMotion
 
       attr_accessor :shared
 
-      # Returns an instance of AFHTTPRequestOperationManager
+      # Returns an instance of AFHTTPSessionManager
       def build(base_url, &block)
         dsl = AFMotion::SessionClientDSL.new(base_url)
         case block.arity
@@ -133,7 +133,7 @@ class AFHTTPSessionManager
     success = options[:success]
     failure = options[:failure]
 
-    request = self.requestSerializer.multipartFormRequestWithMethod("PUT", URLString: NSURL.URLWithString(url_string, relativeToURL: self.baseURL).absoluteString, parameters:parameters, constructingBodyWithBlock:block)
+    request = self.requestSerializer.multipartFormRequestWithMethod("PUT", URLString: NSURL.URLWithString(url_string, relativeToURL: self.baseURL).absoluteString, parameters: parameters, constructingBodyWithBlock: block, error: nil)    
 
     task = self.dataTaskWithRequest(request, completionHandler: ->(response, responseObject, error) {
       if error && failure

@@ -4,7 +4,7 @@ module AFMotion
   class HTTP
     def self.operation_manager
       @operation_manager ||= begin
-        manager = AFHTTPRequestOperationManager.manager
+        manager = AFHTTPSessionManager.manager
         configure_manager(manager)
         manager
       end
