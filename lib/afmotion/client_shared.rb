@@ -1,31 +1,4 @@
 module AFMotion
-  # ported from https://github.com/AFNetworking/AFNetworking/blob/master/UIKit%2BAFNetworking/UIProgressView%2BAFNetworking.m
-  class SessionObserver
-
-    def initialize(task, callback)
-      @callback = callback
-      task.addObserver(self, forKeyPath:"state", options:0, context:nil)
-      task.addObserver(self, forKeyPath:"countOfBytesSent", options:0, context:nil)
-    end
-
-    def observeValueForKeyPath(keyPath, ofObject: object, change: change, context: context)
-      if keyPath == "countOfBytesSent"
-        # Could be -1, see https://github.com/AFNetworking/AFNetworking/issues/1354
-        expectation = (object.countOfBytesExpectedToSend > 0) ? object.countOfBytesExpectedToSend.to_f : nil
-        @callback.call(nil, object.countOfBytesSent.to_f, expectation)
-      end
-
-      if keyPath == "state" && object.state == NSURLSessionTaskStateCompleted
-        begin
-          object.removeObserver(self, forKeyPath: "state")
-          object.removeObserver(self, forKeyPath: "countOfBytesSent")
-          @callback = nil
-        rescue
-        end
-      end
-    end
-  end
-
   module ClientShared
     def headers
       requestSerializer.headers
@@ -39,29 +12,25 @@ module AFMotion
       requestSerializer.authorization = authorization
     end
 
-    def multipart_post(path, parameters = {}, &callback)
-      create_multipart_operation(:post, path, parameters, &callback)
+    def multipart_post(path, options = {}, &callback)
+      create_multipart_task(:post, path, options, &callback)
     end
 
-    def multipart_put(path, parameters = {}, &callback)
-      create_multipart_operation(:put, path, parameters, &callback)
+    def multipart_put(path, options = {}, &callback)
+      create_multipart_task(:put, path, options, &callback)
     end
 
-    def create_multipart_operation(http_method, path, parameters = {}, &callback)
-      inner_callback = Proc.new do |result, form_data,  bytes_written_now,  total_bytes_written, total_bytes_expect|
+    def create_multipart_task(http_method, path, options = {}, &callback)
+      parameters = options[:params]
+      headers = options.fetch(:headers, {})
+      progress = options[:progress_block]
+
+      inner_callback = Proc.new do |result, form_data|
         case callback.arity
         when 1
           callback.call(result)
         when 2
           callback.call(result, form_data)
-        when 3
-          progress = nil
-          if total_bytes_written && total_bytes_expect
-            progress = total_bytes_written.to_f / total_bytes_expect.to_f
-          end
-          callback.call(result, form_data, progress)
-        when 5
-          callback.call(result, form_data, bytes_written_now, total_bytes_written, total_bytes_expect)
         end
       end
 
@@ -72,62 +41,77 @@ module AFMotion
         }
       end
 
-      upload_callback = nil
-      if callback.arity > 2
-        upload_callback = lambda { |bytes_written_now, total_bytes_written, total_bytes_expect|
-          inner_callback.call(nil, nil, bytes_written_now, total_bytes_written, total_bytes_expect)
+      http_method = http_method.to_s.upcase
+      if http_method == "POST"
+        task = self.POST(path,
+          parameters: parameters,
+          headers: headers,
+          constructingBodyWithBlock: multipart_callback,
+          progress: progress,
+          success: success_block_for_http_method(:post, inner_callback),
+          failure: failure_block(inner_callback))
+      else
+        task = self.PUT(path,
+          parameters: parameters,
+          headers: headers,
+          constructingBodyWithBlock: multipart_callback,
+          progress: progress,
+          success: success_block_for_http_method(:post, inner_callback),
+          failure: failure_block(inner_callback))
+      end
+      task
+    end
+
+    def create_task(http_method, path, options = {}, &callback)
+      parameters = options.fetch(:params, {})
+      headers = options.fetch(:headers, {})
+      progress = options[:progress_block]
+
+      method_signature = "#{http_method.to_s.upcase}:parameters:headers:progress:success:failure"
+      success = success_block_for_http_method(http_method, callback)
+      failure = failure_block(callback)
+      method_and_args = [method_signature, path, parameters, headers, progress, success, failure]
+
+      # HEAD doesn't take a progress arg
+      if http_method.to_s.upcase == "HEAD"
+        method_signature.gsub!("progress:", "")
+        method_and_args.delete_at(4)
+      end
+
+      self.public_send(*method_and_args)
+    end
+
+    def success_block_for_http_method(http_method, callback)
+      if http_method.downcase.to_sym == :head
+        return ->(task) {
+          result = AFMotion::HTTPResult.new(task, nil, nil)
+          callback.call(result)
         }
       end
 
-      http_method = http_method.to_s.upcase
-      if http_method == "POST"
-        operation_or_task = self.POST(path,
-          parameters: parameters,
-          constructingBodyWithBlock: multipart_callback,
-          success: AFMotion::Operation.success_block_for_http_method(:post, inner_callback),
-          failure: AFMotion::Operation.failure_block(inner_callback))
-      else
-        operation_or_task = self.PUT(path,
-          parameters: parameters,
-          constructingBodyWithBlock: multipart_callback,
-          success: AFMotion::Operation.success_block_for_http_method(:post, inner_callback),
-          failure: AFMotion::Operation.failure_block(inner_callback))
-      end
-      if upload_callback
-        if operation_or_task.is_a?(AFURLConnectionOperation)
-          operation_or_task.setUploadProgressBlock(upload_callback)
-        else
-          # using NSURLSession - messy, probably leaks
-          @observer = SessionObserver.new(operation_or_task, upload_callback)
-        end
-      end
-      operation_or_task
+      ->(task, responseObject) {
+        result = AFMotion::HTTPResult.new(task, responseObject, nil)
+        callback.call(result)
+      }
     end
 
-    def create_operation(http_method, path, parameters = {}, &callback)
-      method_signature = "#{http_method.upcase}:parameters:success:failure:"
-      method = self.method(method_signature)
-      success_block = AFMotion::Operation.success_block_for_http_method(http_method, callback)
-      failure_block = AFMotion::Operation.failure_block(callback)
-      operation = method.call(path, parameters, success_block, failure_block)
-      if parameters && parameters[:progress_block] && operation.respond_to?(:setDownloadProgressBlock)
-        operation.setDownloadProgressBlock(parameters.delete(:progress_block))
-      end
-      operation
+    def failure_block(callback)
+      ->(task, error) {
+        result = AFMotion::HTTPResult.new(task, nil, error)
+        callback.call(result)
+      }
     end
-
-    alias_method :create_task, :create_operation
 
     private
     # To force RubyMotion pre-compilation of these methods
     def dummy
-      self.GET("", parameters: nil, success: nil, failure: nil)
-      self.HEAD("", parameters: nil, success: nil, failure: nil)
-      self.POST("", parameters: nil, success: nil, failure: nil)
-      self.POST("", parameters: nil, constructingBodyWithBlock: nil, success: nil, failure: nil)
-      self.PUT("", parameters: nil, success: nil, failure: nil)
-      self.DELETE("", parameters: nil, success: nil, failure: nil)
-      self.PATCH("", parameters: nil, success: nil, failure: nil)
+      self.GET("", parameters: nil, headers: nil, progress: nil, success: nil, failure: nil)
+      self.HEAD("", parameters: nil, headers: nil, success: nil, failure: nil)
+      self.POST("", parameters: nil, headers: nil, progress: nil, success: nil, failure: nil)
+      self.POST("", parameters: nil, headers: nil, constructingBodyWithBlock: nil, progress: nil, success: nil, failure: nil)
+      self.PUT("", parameters: nil, headers: nil, progress: nil, success: nil, failure: nil)
+      self.DELETE("", parameters: nil, headers: nil, progress: nil, success: nil, failure: nil)
+      self.PATCH("", parameters: nil, headers: nil, progress: nil, success: nil, failure: nil)
     end
   end
 end

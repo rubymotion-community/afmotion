@@ -32,8 +32,6 @@ class AFHTTPRequestSerializer
       clearAuthorizationHeader
     elsif options[:username] && options[:password]
       setAuthorizationHeaderFieldWithUsername(options[:username], password: options[:password])
-    elsif options[:token]
-      setAuthorizationHeaderFieldWithToken(options[:token])
     else
       raise "Not a valid authorization hash: #{options.inspect}"
     end

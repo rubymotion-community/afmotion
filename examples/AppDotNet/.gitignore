@@ -1,6 +1,7 @@
 .repl_history
 build
 tags
+app/pixate_code.rb
 resources/*.nib
 resources/*.momd
 resources/*.storyboardc
@@ -11,4 +12,7 @@ nbproject
 *~
 *.sw[po]
 .eprj
+.sass-cache
+.idea
+.dat*.*
 vendor/Pods

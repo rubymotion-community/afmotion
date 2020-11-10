@@ -2,9 +2,9 @@ motion_require 'version'
 
 module AFMotion
   class HTTP
-    def self.operation_manager
-      @operation_manager ||= begin
-        manager = AFHTTPRequestOperationManager.manager
+    def self.manager
+      @manager ||= begin
+        manager = AFHTTPSessionManager.manager
         configure_manager(manager)
         manager
       end
@@ -35,20 +35,35 @@ module AFMotion
   end
 
   class Image < HTTP
-    def self.configure_manager(operation)
-      operation.image!
+    def self.configure_manager(manager)
+      manager.image!
     end
   end
 
   [HTTP, JSON, XML, PLIST, Image].each do |base|
     AFMotion::HTTP_METHODS.each do |method_name|
-      method_signature = "#{method_name.to_s.upcase}:parameters:success:failure:"
-      base.define_singleton_method(method_name, -> (url, parameters = nil, &callback) do
-        manager = base.operation_manager
-        manager.send(method_signature, url,
+      http_method = method_name.to_s.upcase
+
+      method_signature = "#{http_method}:parameters:headers:progress:success:failure:"
+      method_signature.gsub!("progress:", "") if http_method == "HEAD"
+
+      base.define_singleton_method(method_name, -> (url, options = {}, &callback) do
+        parameters = options.fetch(:params, {})
+        headers = options[:headers]
+        progress = options[:progress_block]
+
+        args = [ method_signature,
+          url,
           parameters,
-          AFMotion::Operation.success_block_for_http_method(method_name, callback),
-          AFMotion::Operation.failure_block(callback))
+          headers,
+          progress,
+          manager.success_block_for_http_method(method_name, callback),
+          manager.failure_block(callback)
+        ]
+
+        args.delete_at(4) if http_method == "HEAD" # HEAD doesn't take a progress arg
+
+        base.manager.send(*args)
       end)
     end
   end

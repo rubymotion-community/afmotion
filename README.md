@@ -33,7 +33,36 @@ end
 end
 ```
 
-You can either use `AFMotion::Client` or `AFMotion::SessionClient` to group similar requests. They have identical APIs, except for their creation and that their request `result` objects contain either `result.operation` (for `::Client`) or `result.task` (for `::SessionClient`).
+#### Migration from AFMotion 2.x
+
+_Breaking Change_
+Parameters must now be specified with the `params:` keyword arg.
+
+AFMotion 2.x
+
+```ruby
+AFMotion::HTTP.get("http://google.com", q: "rubymotion") do |result|
+  # sends request to http://google.com?q=rubymotion
+end
+```
+
+AFMotion 3.x
+
+```ruby
+AFMotion::HTTP.get("http://google.com", params: { q: "rubymotion" }) do |result|
+  # sends request to http://google.com?q=rubymotion
+end
+```
+
+This allows you to also pass in a progress_block or additional headers on the fly:
+
+```ruby
+AFMotion::HTTP.get("http://url.com/large_file.mov", params: { quality: "high" }, progress_block: proc { |progress| update_progress(progress) }, headers: {}) do |result|
+  # sends request to http://google.com?q=rubymotion
+end
+```
+
+For grouping similar requests (AFHTTPSession), use `AFMotion::Client` (now exactly the same as `AFMotion::SessionClient`)
 
 #### AFMotion::Client
 
@@ -43,22 +72,6 @@ If you're interacting with a web service, you can use [`AFHTTPRequestOperationMa
 # DSL Mapping to properties of AFHTTPRequestOperationManager
 
 @client = AFMotion::Client.build("https://alpha-api.app.net/") do
-  header "Accept", "application/json"
-
-  response_serializer :json
-end
-```
-
-#### AFMotion::SessionClient
-
-If you're using iOS7, you can use [`AFHTTPSessionManager`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Classes/AFHTTPSessionManager.html):
-
-```ruby
-# DSL Mapping to properties of AFHTTPSessionManager
-
-@client = AFMotion::SessionClient.build("https://alpha-api.app.net/") do
-  session_configuration :default
-
   header "Accept", "application/json"
 
   response_serializer :json
@@ -103,8 +116,7 @@ Each AFMotion wrapper callback yields an `AFMotion::HTTPResult` object. This obj
 
 ```ruby
 AFMotion::some_function do |result|
-  # result.operation is the AFURLConnectionOperation instance
-  p result.operation.inspect
+  p result.task.inspect
   p result.status_code
 
   if result.success?
@@ -135,7 +147,7 @@ end
 Example:
 
 ```ruby
-AFMotion::HTTP.get("http://google.com", q: "rubymotion") do |result|
+AFMotion::HTTP.get("http://google.com", params: { q: "rubymotion" }) do |result|
   # sends request to http://google.com?q=rubymotion
 end
 ```
@@ -148,7 +160,7 @@ end
 
 ### HTTP Client
 
-If you're constantly accesing a web service, it's a good idea to use an `AFHTTPRequestOperationManager`. Things lets you add a common base URL and request headers to all the requests issued through it, like so:
+If you're constantly accesing a web service, it's a good idea to use an `AFHTTPSessionManager`. Things lets you add a common base URL and request headers to all the requests issued through it, like so:
 
 ```ruby
 client = AFMotion::Client.build("https://alpha-api.app.net/") do
@@ -163,42 +175,23 @@ client.get("stream/0/posts/stream/global") do |result|
 end
 ```
 
-If you're using iOS7, you can use [`AFHTTPSessionManager`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Classes/AFHTTPSessionManager.html):
-
-```ruby
-# DSL Mapping to properties of AFHTTPSessionManager
-
-client = AFMotion::SessionClient.build("https://alpha-api.app.net/") do
-  session_configuration :default
-
-  header "Accept", "application/json"
-
-  response_serializer :json
-end
-
-client.get("stream/0/posts/stream/global") do |result|
-  # result.task exists
-  ...
-end
-```
-
 If you're constantly used one web service, you can use the `AFMotion::Client.shared` variable have a common reference. It can be set like a normal variable or created with `AFMotion::Client.build_shared`.
 
 `AFHTTPRequestOperationManager` & `AFHTTPSessionManager` support methods of the form `Client#get/post/put/patch/delete(url, request_parameters)`. The `request_parameters` is a hash containing your parameters to attach as the request body or URL parameters, depending on request type. For example:
 
 ```ruby
-client.get("users", id: 1) do |result|
+client.get("users", params: { id: 1 }) do |result|
   ...
 end
 
-client.post("users", name: "@clayallsopp", library: "AFMotion") do |result|
+client.post("users", params: { name: "@clayallsopp", library: "AFMotion" }) do |result|
   ...
 end
 ```
 
 #### Multipart Requests
 
-`AFHTTPRequestOperationManager` & `AFHTTPSessionManager` support multipart form requests (i.e. for image uploading) - simply use `multipart_post` and it'll convert your parameters into properly encoded multipart data. For all other types of request data, use the `form_data` object passed to your callback:
+`AFHTTPSessionManager` support multipart form requests (i.e. for image uploading) - simply use `multipart_post` and it'll convert your parameters into properly encoded multipart data. For all other types of request data, use the `form_data` object passed to your callback:
 
 ```ruby
 # an instance of UIImage
@@ -220,17 +213,14 @@ end
 
 This is an instance of [`AFMultipartFormData`](http://cocoadocs.org/docsets/AFNetworking/2.0.0/Protocols/AFMultipartFormData.html).
 
-If you want to track upload progress, you can add a third callback argument which returns the upload percentage between 0.0 and 1.0:
+If you want to track upload progress, simply add a progress_block (Taking a single arg: `NSProgress`)
 
 ```ruby
-client.multipart_post("avatars") do |result, form_data, progress|
+client.multipart_post("avatars", progress_block: proc { |progress| update_progress(progress) }) do |result, form_data|
   if form_data
     # Called before request runs
     # see: https://github.com/AFNetworking/AFNetworking/wiki/AFNetworking-FAQ
     form_data.appendPartWithFileData(data, name: "avatar", fileName:"avatar.png", mimeType: "image/png")
-  elsif progress
-    # 0.0 < progress < 1.0
-    my_widget.update_progress(progress)
   else
   ...
 end

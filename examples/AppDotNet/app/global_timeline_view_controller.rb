@@ -42,7 +42,7 @@ class GlobalTimelineViewController < UITableViewController
   def viewDidLoad
     super
 
-    self.title = "AFMotion"
+    self.title = "Feed Example"
 
     self.navigationItem.leftBarButtonItem = UIBarButtonItem.alloc.initWithCustomView(self.activityIndicatorView)
     self.navigationItem.rightBarButtonItem = UIBarButtonItem.alloc.initWithBarButtonSystemItem(UIBarButtonSystemItemRefresh, target:self, action: 'reload')
