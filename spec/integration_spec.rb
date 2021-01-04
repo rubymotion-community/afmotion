@@ -52,7 +52,7 @@ describe "AFMotion" do
           response_serializer :json
         end
 
-        client.get(path, nil) do |result|
+        client.get(path, params: nil) do |result|
           @result = result
           @object = result.object
           resume

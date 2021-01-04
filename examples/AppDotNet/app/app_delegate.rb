@@ -2,7 +2,7 @@ class AppDelegate
   attr_accessor :navigationController, :window
   def application(application, didFinishLaunchingWithOptions:launchOptions)
 
-    AFMotion::SessionClient.build_shared("https://alpha-api.app.net") do
+    AFMotion::SessionClient.build_shared("http://localhost:4567") do
       session_configuration :default
       header "Accept", "application/json"
 
@@ -14,10 +14,16 @@ class AppDelegate
 
     AFNetworkActivityIndicatorManager.sharedManager.enabled = true
 
-    viewController = GlobalTimelineViewController.alloc.initWithStyle(UITableViewStylePlain)
+    feedController = GlobalTimelineViewController.alloc.initWithStyle(UITableViewStylePlain)
+    uploadController = UploadViewController.alloc.init
+    uploadController.title = "Upload Example"
 
-    self.navigationController = UINavigationController.alloc.initWithRootViewController(viewController)
-    self.navigationController.navigationBar.tintColor = UIColor.darkGrayColor
+    feedController.tabBarItem.image = UIImage.imageNamed("feed")
+    uploadController.tabBarItem.image = UIImage.imageNamed("upload")
+
+    self.navigationController = UITabBarController.alloc.init
+    self.navigationController.tabBar.tintColor = UIColor.darkGrayColor
+    self.navigationController.setViewControllers([feedController, uploadController], animated: false)
 
     self.window = UIWindow.alloc.initWithFrame(UIScreen.mainScreen.bounds)
     self.window.backgroundColor = UIColor.whiteColor

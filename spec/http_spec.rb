@@ -4,6 +4,19 @@ describe "AFMotion" do
 
   modules.each do |_module|
     describe _module.to_s do
+      extend WebStub::SpecHelpers
+
+      before do
+        disable_network_access!
+        @result = nil
+      end
+
+      after do
+        enable_network_access!
+        reset_stubs
+      end
+
+
       it "should have all the HTTP methods" do
         AFMotion::HTTP_METHODS.each do |method|
           _module.respond_to?(method).should == true
@@ -16,7 +29,7 @@ describe "AFMotion" do
         end
 
         it "should work with string" do
-          _module.get("http://google.com") do |result|
+          _module.get("https://google.com") do |result|
             @result = result
             resume
           end
